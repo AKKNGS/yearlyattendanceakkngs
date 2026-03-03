@@ -365,3 +365,4 @@ bindEvents();
 setView("cards");
 loadAll();
 
+
