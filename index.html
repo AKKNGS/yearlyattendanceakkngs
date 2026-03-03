@@ -24,6 +24,8 @@
       </div>
 
       <div class="actions">
+        <button id="btnMonths" class="btn ghost">Months</button>
+        <button id="btnAccount" class="btn ghost">Account</button>
         <button id="btnInstall" class="btn ghost" hidden>Install</button>
         <button id="btnRefresh" class="btn">Refresh</button>
       </div>
@@ -50,11 +52,12 @@
           <div class="field">
             <label>តម្រៀប</label>
             <select id="sort">
+              <option value="sheet" selected>តាមលំដាប់ក្នុង Sheet</option>
               <option value="code">កូដ</option>
               <option value="name">ឈ្មោះ</option>
               <option value="present_desc">វត្តមាន (ច្រើន→តិច)</option>
-              <option value="miss_desc">ភ្លេចស្កេន (ច្រើន→តិច)</option>
-              <option value="mission_desc">បេសកម្ម (ច្រើន→តិច)</option>
+              <option value="miss_desc">សម្រាក/អវត្តមាន (ច្រើន→តិច)</option>
+              <option value="late_desc">យឺត (ច្រើន→តិច)</option>
             </select>
           </div>
 
@@ -74,11 +77,11 @@
       <section class="panel">
         <div class="panelHeader">
           <div>
-            <div class="panelTitle">បុគ្គលិក (សរុបក្នុង ១ ឆ្នាំ)</div>
+            <div class="panelTitle" id="panelTitle">បុគ្គលិក</div>
             <div class="panelHint" id="hint"></div>
           </div>
 
-          <div class="chip">
+          <div class="chip" id="sourceChip">
             <span class="dot"></span>
             Summary Sheet
           </div>
@@ -96,9 +99,9 @@
                 <th class="center">ភេទ</th>
                 <th>តួនាទី</th>
                 <th class="right">វត្តមាន</th>
-                <th class="right">ភ្លេចស្កេន</th>
+                <th class="right">សម្រាក/អវត្តមាន</th>
                 <th class="right">ច្បាប់</th>
-                <th class="right">បេសកម្ម</th>
+                <th class="right">យឺត</th>
                 <th class="center">លម្អិត</th>
               </tr>
             </thead>
@@ -118,7 +121,7 @@
     </footer>
   </div>
 
-  <!-- Modal (Detail for 1 employee - Year total) -->
+  <!-- Employee Detail Modal -->
   <div class="modal" id="modal" aria-hidden="true">
     <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHeader">
@@ -141,6 +144,55 @@
       </div>
     </div>
     <div class="backdrop" id="backdrop"></div>
+  </div>
+
+  <!-- Months Modal -->
+  <div class="modal" id="monthsModal" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="monthsTitle">
+      <div class="modalHeader">
+        <div>
+          <div id="monthsTitle" class="modalTitle">មើលទិន្នន័យតាមខែ</div>
+          <div class="modalSub">ជ្រើសខែ ដើម្បីបង្ហាញទិន្នន័យ (មិនប៉ះពាល់ Summary)</div>
+        </div>
+        <button class="btn ghost" id="btnMonthsClose">Close</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="monthsGrid" id="monthsGrid"></div>
+      </div>
+    </div>
+    <div class="backdrop" id="monthsBackdrop"></div>
+  </div>
+
+  <!-- Account Modal -->
+  <div class="modal" id="accountModal" aria-hidden="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="accTitle">
+      <div class="modalHeader">
+        <div>
+          <div id="accTitle" class="modalTitle">គណនី / Account</div>
+          <div class="modalSub">ព័ត៌មានអ្នកបង្កើតកម្មវិធី</div>
+        </div>
+        <button class="btn ghost" id="btnAccountClose">Close</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="accountCard">
+          <div class="accountLine"><span>ឈ្មោះអ្នកបង្កើត</span><b>ហម ម៉ាលីនដា</b></div>
+          <div class="accountLine"><span>លេខទូរសព្ទ</span><b><a class="link" href="tel:017751115">017 751 115</a></b></div>
+          <div class="accountLine"><span>Telegram</span><b><a class="link" target="_blank" rel="noopener" href="https://t.me/MalindaHorm">t.me/MalindaHorm</a></b></div>
+
+          <div class="accountActions">
+            <a class="btn" href="tel:017751115">Call</a>
+            <a class="btn ghost" target="_blank" rel="noopener" href="https://t.me/MalindaHorm">Open Telegram</a>
+          </div>
+        </div>
+
+        <div class="footerNote">
+          *អ្នកអាចបន្ថែម “About / Version / Update log” ឬ “Export CSV/PDF” បានទៀត។
+        </div>
+      </div>
+    </div>
+    <div class="backdrop" id="accountBackdrop"></div>
   </div>
 
   <script src="script.js"></script>
