@@ -1,4 +1,4 @@
-const CACHE = "attendance-pwa-v1";
+const CACHE = "attendance-summary-pwa-v1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -21,20 +21,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Cache-first for static, network-first for API
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Apps Script API (network-first)
+  // Apps Script API: network-first
   if (url.hostname.includes("script.google.com")) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
     return;
   }
 
-  // Static (cache-first)
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  // Static: cache-first
+  event.respondWith(caches.match(event.request).then((c)=>c || fetch(event.request)));
 });
