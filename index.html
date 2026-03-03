@@ -19,7 +19,7 @@
         <img class="logo" src="logo.png" alt="logo" />
         <div class="brandText">
           <div class="title">បញ្ជីវត្តមានបុគ្គលិក</div>
-          <div class="subtitle">Annual Attendance • Summary Sheet • View Only</div>
+          <div class="subtitle">Annual Attendance • View Only</div>
         </div>
       </div>
 
@@ -32,7 +32,6 @@
     </header>
 
     <main class="content">
-      <!-- Controls + KPI -->
       <section class="panel">
         <div class="controls">
           <div class="field">
@@ -55,9 +54,9 @@
               <option value="sheet" selected>តាមលំដាប់ក្នុង Sheet</option>
               <option value="code">កូដ</option>
               <option value="name">ឈ្មោះ</option>
-              <option value="present_desc">វត្តមាន (ច្រើន→តិច)</option>
-              <option value="miss_desc">សម្រាក/អវត្តមាន (ច្រើន→តិច)</option>
-              <option value="late_desc">យឺត (ច្រើន→តិច)</option>
+              <option value="present_desc">Total Scan (ច្រើន→តិច)</option>
+              <option value="miss_desc">ForgetScan (ច្រើន→តិច)</option>
+              <option value="mission_desc">Mission (ច្រើន→តិច)</option>
             </select>
           </div>
 
@@ -73,7 +72,6 @@
         <div class="kpis" id="kpis"></div>
       </section>
 
-      <!-- Cards/Table -->
       <section class="panel">
         <div class="panelHeader">
           <div>
@@ -83,7 +81,7 @@
 
           <div class="chip" id="sourceChip">
             <span class="dot"></span>
-            Summary Sheet
+            Summary
           </div>
         </div>
 
@@ -93,25 +91,23 @@
           <table class="table" id="tbl">
             <thead>
               <tr>
-                <th>កូដ</th>
-                <th>នាមត្រកូល</th>
-                <th>នាមខ្លួន</th>
-                <th class="center">ភេទ</th>
-                <th>តួនាទី</th>
-                <th class="right">វត្តមាន</th>
-                <th class="right">សម្រាក/អវត្តមាន</th>
-                <th class="right">ច្បាប់</th>
-                <th class="right">យឺត</th>
-                <th class="center">លម្អិត</th>
+                <th>Employee ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th class="center">Gender</th>
+                <th>Position</th>
+                <th class="right">Total Scan</th>
+                <th class="right">Total ForgetScan</th>
+                <th class="right">Total Permission</th>
+                <th class="right">Total Mission</th>
+                <th class="center">Detail</th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
 
-        <div class="footerNote" id="footerNote">
-          *កំពុងទាញទិន្នន័យ...
-        </div>
+        <div class="footerNote" id="footerNote">*កំពុងទាញទិន្នន័យ...</div>
       </section>
     </main>
 
@@ -123,7 +119,7 @@
 
   <!-- Employee Detail Modal -->
   <div class="modal" id="modal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modalCard" role="dialog" aria-modal="true">
       <div class="modalHeader">
         <div>
           <div id="modalTitle" class="modalTitle">Details</div>
@@ -134,12 +130,11 @@
 
       <div class="modalBody">
         <div class="miniKpis" id="miniKpis"></div>
-
         <div class="detailBox">
-          <div class="detailRow"><span>កូដ</span><b id="d_code">-</b></div>
-          <div class="detailRow"><span>ឈ្មោះ</span><b id="d_name">-</b></div>
-          <div class="detailRow"><span>ភេទ</span><b id="d_gender">-</b></div>
-          <div class="detailRow"><span>តួនាទី</span><b id="d_role">-</b></div>
+          <div class="detailRow"><span>Employee ID</span><b id="d_code">-</b></div>
+          <div class="detailRow"><span>Name</span><b id="d_name">-</b></div>
+          <div class="detailRow"><span>Gender</span><b id="d_gender">-</b></div>
+          <div class="detailRow"><span>Position</span><b id="d_role">-</b></div>
         </div>
       </div>
     </div>
@@ -148,15 +143,14 @@
 
   <!-- Months Modal -->
   <div class="modal" id="monthsModal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="monthsTitle">
+    <div class="modalCard" role="dialog" aria-modal="true">
       <div class="modalHeader">
         <div>
-          <div id="monthsTitle" class="modalTitle">មើលទិន្នន័យតាមខែ</div>
-          <div class="modalSub">ជ្រើសខែ ដើម្បីបង្ហាញទិន្នន័យ (មិនប៉ះពាល់ Summary)</div>
+          <div class="modalTitle">មើលទិន្នន័យតាមខែ</div>
+          <div class="modalSub">ជ្រើសខែ ដើម្បីបង្ហាញទិន្នន័យ</div>
         </div>
         <button class="btn ghost" id="btnMonthsClose">Close</button>
       </div>
-
       <div class="modalBody">
         <div class="monthsGrid" id="monthsGrid"></div>
       </div>
@@ -166,15 +160,14 @@
 
   <!-- Account Modal -->
   <div class="modal" id="accountModal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="accTitle">
+    <div class="modalCard" role="dialog" aria-modal="true">
       <div class="modalHeader">
         <div>
-          <div id="accTitle" class="modalTitle">គណនី / Account</div>
+          <div class="modalTitle">គណនី / Account</div>
           <div class="modalSub">ព័ត៌មានអ្នកបង្កើតកម្មវិធី</div>
         </div>
         <button class="btn ghost" id="btnAccountClose">Close</button>
       </div>
-
       <div class="modalBody">
         <div class="accountCard">
           <div class="accountLine"><span>ឈ្មោះអ្នកបង្កើត</span><b>ហម ម៉ាលីនដា</b></div>
@@ -185,10 +178,6 @@
             <a class="btn" href="tel:017751115">Call</a>
             <a class="btn ghost" target="_blank" rel="noopener" href="https://t.me/MalindaHorm">Open Telegram</a>
           </div>
-        </div>
-
-        <div class="footerNote">
-          *អ្នកអាចបន្ថែម “About / Version / Update log” ឬ “Export CSV/PDF” បានទៀត។
         </div>
       </div>
     </div>
