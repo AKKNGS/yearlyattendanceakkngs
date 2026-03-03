@@ -60,12 +60,12 @@ async function fetchEmployees(mode, monthKey){
    Render
 =========================== */
 function computeTotals(list){
-  const t = { present:0, miss:0, permission:0, late:0, count:list.length };
+  const t = { present:0, miss:0, permission:0, mission:0, count:list.length };
   for(const r of list){
     t.present += Number(r.present || 0);
     t.miss += Number(r.miss || 0);
     t.permission += Number(r.permission || 0);
-    t.late += Number(r.late || 0);
+    t.mission += Number(r.mission || 0);
   }
   return t;
 }
@@ -81,7 +81,7 @@ function renderKpis(list){
     { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួនក្នុងតារាង" },
     { k:"វត្តមាន", v: fmt(t.present), s: label },
     { k:"សម្រាក/អវត្តមាន", v: fmt(t.miss), s: label },
-    { k:"យឺត", v: fmt(t.late), s: label },
+    { k:"បេសកម្ម", v: fmt(t.late), s: label },
   ];
 
   for(const c of cards){
@@ -364,5 +364,6 @@ if ("serviceWorker" in navigator) {
 bindEvents();
 setView("cards");
 loadAll();
+
 
 
