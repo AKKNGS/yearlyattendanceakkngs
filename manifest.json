@@ -1,0 +1,13 @@
+{
+  "name": "វត្តមានបុគ្គលិក (Annual Attendance)",
+  "short_name": "Attendance",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1976d2",
+  "description": "View-only attendance dashboard from Google Sheets (PWA).",
+  "icons": [
+    { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
