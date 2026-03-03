@@ -349,3 +349,54 @@ body{
   .cards{grid-template-columns: 1fr;}
   .empNums{grid-template-columns: repeat(2, 1fr);}
 }
+
+.monthsGrid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+.monthBtn{
+  padding:12px 12px;
+  border-radius:16px;
+  border:1px solid var(--border);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+  font-weight:950;
+  cursor:pointer;
+}
+.monthBtn:hover{background: rgba(100,181,246,.12)}
+
+.accountCard{
+  border:1px solid var(--border);
+  border-radius: 18px;
+  background: rgba(255,255,255,.03);
+  padding: 12px 14px;
+}
+.accountLine{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding: 10px 4px;
+  border-bottom: 1px dashed rgba(255,255,255,.10);
+}
+.accountLine:last-child{border-bottom:0}
+.accountLine span{color:var(--muted); font-size:12.5px}
+
+.link{color: rgba(100,181,246,.95); text-decoration:none}
+.link:hover{text-decoration:underline}
+
+.accountActions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  padding-top: 12px;
+}
+
+@media (max-width: 900px){
+  .monthsGrid{grid-template-columns: repeat(3, 1fr);}
+}
+@media (max-width: 520px){
+  .monthsGrid{grid-template-columns: repeat(2, 1fr);}
+  .accountActions{flex-direction:column}
+  .accountActions .btn{width:100%; text-align:center}
+}
