@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#0b1220",
   "theme_color": "#1976d2",
-  "description": "View-only attendance dashboard from Google Sheets (PWA).",
+  "description": "View-only annual attendance dashboard from Summary sheet (PWA).",
   "icons": [
     { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
   ]
