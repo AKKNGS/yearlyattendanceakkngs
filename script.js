@@ -1,36 +1,31 @@
-/* ===========================
-   CONFIG
-=========================== */
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwGifoIAxkfZt3cGroIa9u9a1fepzakyQKic5DyPOsRL8-h7u6f85CrkqIMY4m-W-rA/exec";
-const API_TOKEN  = ""; // optional, must match TOKEN in Code.gs
+const API_TOKEN  = ""; // optional
 
-/* ===========================
-   State
-=========================== */
 let employees = [];
-let months = [];          // from meta
-let currentMode = "YEAR"; // YEAR or MONTH
+let months = [];
+let currentMode = "YEAR";      // YEAR | MONTH
 let currentMonthKey = "ALL";
 let deferredInstallPrompt = null;
 
-/* ===========================
-   Helpers
-=========================== */
 const $ = (id) => document.getElementById(id);
+
 function setStatus(msg){ $("status").textContent = msg; }
-function fmt(n){ return Number(n || 0).toLocaleString("en-US"); }
 function safeText(s){ return (s ?? "").toString(); }
-function initials(lastName, firstName){
-  const a = (safeText(lastName)[0] || "").toUpperCase();
-  const b = (safeText(firstName)[0] || "").toUpperCase();
+function fmt(n){ return Number(n || 0).toLocaleString("en-US"); }
+
+function initials(firstName, lastName){
+  const a = (safeText(firstName)[0] || "").toUpperCase();
+  const b = (safeText(lastName)[0] || "").toUpperCase();
   return (a + b) || "AA";
 }
+
 function apiUrl(params){
   const u = new URL(SCRIPT_URL);
   Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
   if (API_TOKEN) u.searchParams.set("token", API_TOKEN);
   return u.toString();
 }
+
 function qs(){
   return {
     q: $("q").value.trim().toLowerCase(),
@@ -39,26 +34,18 @@ function qs(){
   };
 }
 
-/* ===========================
-   API
-=========================== */
 async function fetchMeta(){
   const res = await fetch(apiUrl({ action:"meta" }), { cache:"no-store" });
   if(!res.ok) throw new Error("Meta fetch failed");
   return res.json();
 }
-async function fetchEmployees(mode, monthKey){
-  // mode YEAR => month=ALL (Summary totals)
-  // mode MONTH => month=November/December...
-  const month = (mode === "YEAR") ? "ALL" : (monthKey || "ALL");
+
+async function fetchEmployees(month){
   const res = await fetch(apiUrl({ action:"employees", month }), { cache:"no-store" });
   if(!res.ok) throw new Error("Employees fetch failed");
   return res.json();
 }
 
-/* ===========================
-   Render
-=========================== */
 function computeTotals(list){
   const t = { present:0, miss:0, permission:0, mission:0, count:list.length };
   for(const r of list){
@@ -75,13 +62,15 @@ function renderKpis(list){
   const wrap = $("kpis");
   wrap.innerHTML = "";
 
-  const label = (currentMode === "YEAR") ? "សរុប ១ ឆ្នាំ" : `ខែ ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
+  const label = (currentMode === "YEAR")
+    ? "Summary (Year)"
+    : `Month: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
 
   const cards = [
-    { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួនក្នុងតារាង" },
-    { k:"វត្តមាន", v: fmt(t.present), s: label },
-    { k:"សម្រាក/អវត្តមាន", v: fmt(t.miss), s: label },
-    { k:"បេសកម្ម", v: fmt(t.late), s: label },
+    { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួន" },
+    { k:"Total Scan", v: fmt(t.present), s: label },
+    { k:"Total ForgetScan", v: fmt(t.miss), s: label },
+    { k:"Total Mission", v: fmt(t.mission), s: label },
   ];
 
   for(const c of cards){
@@ -96,7 +85,7 @@ function cardHtml(r){
   return `
     <div class="empCard">
       <div class="empCardTop">
-        <div class="avatar">${initials(r.lastName, r.firstName)}</div>
+        <div class="avatar">${initials(r.firstName, r.lastName)}</div>
         <div style="min-width:0">
           <div class="empName">${safeText(r.lastName)} ${safeText(r.firstName)}</div>
           <div class="empMeta">${safeText(r.code)} • ${safeText(r.role)} • ${safeText(r.gender)}</div>
@@ -104,10 +93,10 @@ function cardHtml(r){
       </div>
 
       <div class="empNums">
-        <div class="num"><div class="k">វត្តមាន</div><div class="v">${fmt(r.present)}</div></div>
-        <div class="num"><div class="k">សម្រាក/អវត្តមាន</div><div class="v">${fmt(r.miss)}</div></div>
-        <div class="num"><div class="k">ច្បាប់</div><div class="v">${fmt(r.permission)}</div></div>
-        <div class="num"><div class="k">យឺត</div><div class="v">${fmt(r.late)}</div></div>
+        <div class="num"><div class="k">Total Scan</div><div class="v">${fmt(r.present)}</div></div>
+        <div class="num"><div class="k">ForgetScan</div><div class="v">${fmt(r.miss)}</div></div>
+        <div class="num"><div class="k">Permission</div><div class="v">${fmt(r.permission)}</div></div>
+        <div class="num"><div class="k">Mission</div><div class="v">${fmt(r.mission)}</div></div>
       </div>
 
       <div class="empCardActions">
@@ -118,38 +107,34 @@ function cardHtml(r){
   `;
 }
 
-function renderCards(list){ $("cards").innerHTML = list.map(cardHtml).join(""); }
-
 function rowHtml(r){
   return `
     <tr>
       <td><span class="pill">${safeText(r.code)}</span></td>
-      <td>${safeText(r.lastName)}</td>
       <td>${safeText(r.firstName)}</td>
+      <td>${safeText(r.lastName)}</td>
       <td class="center">${safeText(r.gender)}</td>
       <td>${safeText(r.role)}</td>
       <td class="right">${fmt(r.present)}</td>
       <td class="right">${fmt(r.miss)}</td>
       <td class="right">${fmt(r.permission)}</td>
-      <td class="right">${fmt(r.late)}</td>
+      <td class="right">${fmt(r.mission)}</td>
       <td class="center"><button class="btn ghost" data-detail="${safeText(r.code)}">View</button></td>
     </tr>
   `;
 }
 
+function renderCards(list){ $("cards").innerHTML = list.map(cardHtml).join(""); }
+function renderTable(list){ $("tbody").innerHTML = list.map(rowHtml).join(""); }
+
 function setView(view){
   const showCards = view === "cards";
   $("cards").style.display = showCards ? "grid" : "none";
   $("tableWrap").style.display = showCards ? "none" : "block";
-
   $("btnViewCards").classList.toggle("active", showCards);
   $("btnViewTable").classList.toggle("active", !showCards);
 }
 
-/* ===========================
-   Sort/Filter (IMPORTANT)
-   - "sheet": keep row order as in Summary (order field from backend)
-=========================== */
 function applyFilterSort(){
   const {q, gender, sort} = qs();
   let list = employees.slice();
@@ -159,7 +144,7 @@ function applyFilterSort(){
   }
   if(q){
     list = list.filter(x => {
-      const blob = [x.code, x.lastName, x.firstName, x.gender, x.role].map(safeText).join(" ").toLowerCase();
+      const blob = [x.code, x.firstName, x.lastName, x.gender, x.role].map(safeText).join(" ").toLowerCase();
       return blob.includes(q);
     });
   }
@@ -172,26 +157,22 @@ function applyFilterSort(){
   else if(sort === "name") list.sort((a,b)=> (safeText(a.lastName)+safeText(a.firstName)).localeCompare(safeText(b.lastName)+safeText(b.firstName)));
   else if(sort === "present_desc") list.sort((a,b)=>byNumDesc(a,b,"present"));
   else if(sort === "miss_desc") list.sort((a,b)=>byNumDesc(a,b,"miss"));
-  else if(sort === "late_desc") list.sort((a,b)=>byNumDesc(a,b,"late"));
+  else if(sort === "mission_desc") list.sort((a,b)=>byNumDesc(a,b,"mission"));
 
-  $("tbody").innerHTML = list.map(rowHtml).join("");
   renderCards(list);
+  renderTable(list);
   renderKpis(list);
 
   const label = (currentMode === "YEAR")
-    ? "សរុប ១ ឆ្នាំ (Summary)"
-    : `ខែ ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
+    ? "Summary (Year)"
+    : `Month: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
 
   $("panelTitle").textContent = `បុគ្គលិក • ${label}`;
   $("hint").textContent = `បង្ហាញ ${list.length} នាក់ • តម្រៀប: ${$("sort").selectedOptions[0].textContent}`;
-
-  $("sourceChip").innerHTML = `<span class="dot"></span>${currentMode === "YEAR" ? "Summary Sheet" : "Monthly Sheet"}`;
+  $("sourceChip").innerHTML = `<span class="dot"></span>${currentMode === "YEAR" ? "Summary" : "Monthly"}`;
   $("footerNote").textContent = `*Update: ${new Date().toLocaleString()}`;
 }
 
-/* ===========================
-   Employee Detail Modal
-=========================== */
 function showModal(id, show){
   const m = $(id);
   m.classList.toggle("show", !!show);
@@ -204,7 +185,7 @@ function openDetail(code){
 
   $("modalTitle").textContent = `${emp.code} • ${emp.lastName} ${emp.firstName}`;
   $("modalSub").textContent = (currentMode === "YEAR")
-    ? "Summary total (1 year)"
+    ? "Summary total (Year)"
     : `Monthly total: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
 
   $("d_code").textContent = emp.code;
@@ -215,10 +196,10 @@ function openDetail(code){
   const mini = $("miniKpis");
   mini.innerHTML = "";
   const cards = [
-    {k:"វត្តមាន", v: fmt(emp.present)},
-    {k:"សម្រាក/អវត្តមាន", v: fmt(emp.miss)},
-    {k:"ច្បាប់", v: fmt(emp.permission)},
-    {k:"យឺត", v: fmt(emp.late)},
+    {k:"Total Scan", v: fmt(emp.present)},
+    {k:"ForgetScan", v: fmt(emp.miss)},
+    {k:"Permission", v: fmt(emp.permission)},
+    {k:"Mission", v: fmt(emp.mission)},
   ];
   for(const c of cards){
     const d = document.createElement("div");
@@ -230,14 +211,9 @@ function openDetail(code){
   showModal("modal", true);
 }
 
-/* ===========================
-   Months Modal
-=========================== */
 function buildMonthsGrid(){
   const wrap = $("monthsGrid");
   wrap.innerHTML = "";
-
-  // only months that exist from meta
   months.forEach(m => {
     const b = document.createElement("button");
     b.className = "monthBtn";
@@ -248,93 +224,84 @@ function buildMonthsGrid(){
   });
 }
 
-/* ===========================
-   Load
-=========================== */
+async function loadYear(){
+  setStatus("Loading Summary...");
+  currentMode = "YEAR";
+  currentMonthKey = "ALL";
+  const data = await fetchEmployees("ALL");
+  employees = data.employees || [];
+  $("sort").value = "sheet";
+  applyFilterSort();
+  setStatus("Ready");
+}
+
+async function loadMonth(monthKey){
+  setStatus("Loading " + monthKey + "...");
+  currentMode = "MONTH";
+  currentMonthKey = monthKey;
+
+  const data = await fetchEmployees(monthKey);
+  employees = data.employees || [];
+  $("sort").value = "sheet";
+  applyFilterSort();
+  setStatus("Ready");
+}
+
 async function loadAll(){
   setStatus("Loading...");
   try{
     const meta = await fetchMeta();
     months = meta.months || [];
     buildMonthsGrid();
-
-    // default: YEAR mode (Summary)
-    currentMode = "YEAR";
-    currentMonthKey = "ALL";
-
-    const data = await fetchEmployees("YEAR", "ALL");
-    employees = data.employees || [];
-
-    // default sort: sheet order
-    $("sort").value = "sheet";
-    applyFilterSort();
-
-    setStatus("Ready");
+    await loadYear();
   }catch(err){
     console.error(err);
     setStatus("Error");
-    alert("មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ SCRIPT_URL និង Deployment (Web App)។");
+    alert("មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ SCRIPT_URL និង Apps Script Deploy (Web App)។");
   }
 }
 
-async function loadMonth(monthKey){
-  setStatus("Loading month...");
-  try{
-    currentMode = "MONTH";
-    currentMonthKey = monthKey;
-
-    const data = await fetchEmployees("MONTH", monthKey);
-    employees = data.employees || [];
-    // keep sorting = sheet by default (so matches Summary order)
-    $("sort").value = "sheet";
-    applyFilterSort();
-    setStatus("Ready");
-  }catch(err){
-    console.error(err);
-    setStatus("Error");
-    alert("មិនអាចទាញទិន្នន័យខែបានទេ។ សូមពិនិត្យថា sheet ខែនោះមាននៅក្នុង Google Sheet។");
-  }
-}
-
-/* ===========================
-   Events
-=========================== */
 function bindEvents(){
   $("q").addEventListener("input", applyFilterSort);
   $("gender").addEventListener("change", applyFilterSort);
   $("sort").addEventListener("change", applyFilterSort);
 
   $("btnRefresh").addEventListener("click", loadAll);
-
   $("btnViewCards").addEventListener("click", ()=>setView("cards"));
   $("btnViewTable").addEventListener("click", ()=>setView("table"));
 
-  // detail modal
+  // Modals
   $("btnClose").addEventListener("click", ()=>showModal("modal", false));
   $("backdrop").addEventListener("click", ()=>showModal("modal", false));
-  window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") { showModal("modal", false); showModal("monthsModal", false); showModal("accountModal", false); } });
 
+  $("btnMonths").addEventListener("click", ()=>showModal("monthsModal", true));
+  $("btnMonthsClose").addEventListener("click", ()=>showModal("monthsModal", false));
+  $("monthsBackdrop").addEventListener("click", ()=>showModal("monthsModal", false));
+
+  $("btnAccount").addEventListener("click", ()=>showModal("accountModal", true));
+  $("btnAccountClose").addEventListener("click", ()=>showModal("accountModal", false));
+  $("accountBackdrop").addEventListener("click", ()=>showModal("accountModal", false));
+
+  // Global click delegation (IMPORTANT)
   document.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-detail]");
-    if(btn) openDetail(btn.dataset.detail);
+    const detailBtn = e.target.closest("[data-detail]");
+    if(detailBtn) openDetail(detailBtn.dataset.detail);
 
-    const mbtn = e.target.closest("button.monthBtn");
-    if(mbtn){
-      const mk = mbtn.dataset.month;
+    const monthBtn = e.target.closest(".monthBtn");
+    if(monthBtn){
+      const mk = monthBtn.dataset.month;
       showModal("monthsModal", false);
       loadMonth(mk);
     }
   });
 
-  // months modal
-  $("btnMonths").addEventListener("click", ()=>showModal("monthsModal", true));
-  $("btnMonthsClose").addEventListener("click", ()=>showModal("monthsModal", false));
-  $("monthsBackdrop").addEventListener("click", ()=>showModal("monthsModal", false));
-
-  // account modal
-  $("btnAccount").addEventListener("click", ()=>showModal("accountModal", true));
-  $("btnAccountClose").addEventListener("click", ()=>showModal("accountModal", false));
-  $("accountBackdrop").addEventListener("click", ()=>showModal("accountModal", false));
+  window.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape"){
+      showModal("modal", false);
+      showModal("monthsModal", false);
+      showModal("accountModal", false);
+    }
+  });
 
   // PWA Install
   window.addEventListener("beforeinstallprompt", (e) => {
@@ -350,20 +317,15 @@ function bindEvents(){
     deferredInstallPrompt = null;
     $("btnInstall").hidden = true;
   });
-}
 
-/* ===========================
-   Service Worker
-=========================== */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(console.error);
-  });
+  // Service Worker
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(console.error);
+    });
+  }
 }
 
 bindEvents();
 setView("cards");
 loadAll();
-
-
-
