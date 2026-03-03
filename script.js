@@ -8,23 +8,29 @@ const API_TOKEN  = ""; // optional, must match TOKEN in Code.gs
    State
 =========================== */
 let employees = [];
+let months = [];          // from meta
+let currentMode = "YEAR"; // YEAR or MONTH
+let currentMonthKey = "ALL";
 let deferredInstallPrompt = null;
 
 /* ===========================
    Helpers
 =========================== */
 const $ = (id) => document.getElementById(id);
-
 function setStatus(msg){ $("status").textContent = msg; }
 function fmt(n){ return Number(n || 0).toLocaleString("en-US"); }
 function safeText(s){ return (s ?? "").toString(); }
-
 function initials(lastName, firstName){
   const a = (safeText(lastName)[0] || "").toUpperCase();
   const b = (safeText(firstName)[0] || "").toUpperCase();
   return (a + b) || "AA";
 }
-
+function apiUrl(params){
+  const u = new URL(SCRIPT_URL);
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
+  if (API_TOKEN) u.searchParams.set("token", API_TOKEN);
+  return u.toString();
+}
 function qs(){
   return {
     q: $("q").value.trim().toLowerCase(),
@@ -33,32 +39,33 @@ function qs(){
   };
 }
 
-function apiUrl(params){
-  const u = new URL(SCRIPT_URL);
-  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, v));
-  if (API_TOKEN) u.searchParams.set("token", API_TOKEN);
-  return u.toString();
-}
-
 /* ===========================
-   API Calls
+   API
 =========================== */
-async function fetchEmployees(){
-  const res = await fetch(apiUrl({ action:"employees" }), { cache:"no-store" });
+async function fetchMeta(){
+  const res = await fetch(apiUrl({ action:"meta" }), { cache:"no-store" });
+  if(!res.ok) throw new Error("Meta fetch failed");
+  return res.json();
+}
+async function fetchEmployees(mode, monthKey){
+  // mode YEAR => month=ALL (Summary totals)
+  // mode MONTH => month=November/December...
+  const month = (mode === "YEAR") ? "ALL" : (monthKey || "ALL");
+  const res = await fetch(apiUrl({ action:"employees", month }), { cache:"no-store" });
   if(!res.ok) throw new Error("Employees fetch failed");
   return res.json();
 }
 
 /* ===========================
-   Rendering
+   Render
 =========================== */
 function computeTotals(list){
-  const t = { present:0, miss:0, permission:0, mission:0, count:list.length };
+  const t = { present:0, miss:0, permission:0, late:0, count:list.length };
   for(const r of list){
     t.present += Number(r.present || 0);
     t.miss += Number(r.miss || 0);
     t.permission += Number(r.permission || 0);
-    t.mission += Number(r.mission || 0);
+    t.late += Number(r.late || 0);
   }
   return t;
 }
@@ -68,11 +75,13 @@ function renderKpis(list){
   const wrap = $("kpis");
   wrap.innerHTML = "";
 
+  const label = (currentMode === "YEAR") ? "សរុប ១ ឆ្នាំ" : `ខែ ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
+
   const cards = [
     { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួនក្នុងតារាង" },
-    { k:"វត្តមាន", v: fmt(t.present), s:"សរុប ១ ឆ្នាំ" },
-    { k:"ភ្លេចស្កេន", v: fmt(t.miss), s:"សរុប ១ ឆ្នាំ" },
-    { k:"បេសកម្ម", v: fmt(t.mission), s:"សរុប ១ ឆ្នាំ" },
+    { k:"វត្តមាន", v: fmt(t.present), s: label },
+    { k:"សម្រាក/អវត្តមាន", v: fmt(t.miss), s: label },
+    { k:"យឺត", v: fmt(t.late), s: label },
   ];
 
   for(const c of cards){
@@ -96,22 +105,20 @@ function cardHtml(r){
 
       <div class="empNums">
         <div class="num"><div class="k">វត្តមាន</div><div class="v">${fmt(r.present)}</div></div>
-        <div class="num"><div class="k">ភ្លេចស្កេន</div><div class="v">${fmt(r.miss)}</div></div>
+        <div class="num"><div class="k">សម្រាក/អវត្តមាន</div><div class="v">${fmt(r.miss)}</div></div>
         <div class="num"><div class="k">ច្បាប់</div><div class="v">${fmt(r.permission)}</div></div>
-        <div class="num"><div class="k">បេសកម្ម</div><div class="v">${fmt(r.mission)}</div></div>
+        <div class="num"><div class="k">យឺត</div><div class="v">${fmt(r.late)}</div></div>
       </div>
 
       <div class="empCardActions">
-        <div class="tag">សរុបក្នុង ១ ឆ្នាំ (Summary)</div>
+        <div class="tag">${currentMode === "YEAR" ? "Summary (Year)" : `Month: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`}</div>
         <button class="btn ghost" data-detail="${safeText(r.code)}">View</button>
       </div>
     </div>
   `;
 }
 
-function renderCards(list){
-  $("cards").innerHTML = list.map(cardHtml).join("");
-}
+function renderCards(list){ $("cards").innerHTML = list.map(cardHtml).join(""); }
 
 function rowHtml(r){
   return `
@@ -124,7 +131,7 @@ function rowHtml(r){
       <td class="right">${fmt(r.present)}</td>
       <td class="right">${fmt(r.miss)}</td>
       <td class="right">${fmt(r.permission)}</td>
-      <td class="right">${fmt(r.mission)}</td>
+      <td class="right">${fmt(r.late)}</td>
       <td class="center"><button class="btn ghost" data-detail="${safeText(r.code)}">View</button></td>
     </tr>
   `;
@@ -139,6 +146,10 @@ function setView(view){
   $("btnViewTable").classList.toggle("active", !showCards);
 }
 
+/* ===========================
+   Sort/Filter (IMPORTANT)
+   - "sheet": keep row order as in Summary (order field from backend)
+=========================== */
 function applyFilterSort(){
   const {q, gender, sort} = qs();
   let list = employees.slice();
@@ -156,25 +167,33 @@ function applyFilterSort(){
   const byText = (a,b, key) => safeText(a[key]).localeCompare(safeText(b[key]));
   const byNumDesc = (a,b, key) => (Number(b[key]||0) - Number(a[key]||0));
 
-  if(sort === "code") list.sort((a,b)=>byText(a,b,"code"));
+  if(sort === "sheet") list.sort((a,b)=> (Number(a.order||0) - Number(b.order||0)));
+  else if(sort === "code") list.sort((a,b)=>byText(a,b,"code"));
   else if(sort === "name") list.sort((a,b)=> (safeText(a.lastName)+safeText(a.firstName)).localeCompare(safeText(b.lastName)+safeText(b.firstName)));
   else if(sort === "present_desc") list.sort((a,b)=>byNumDesc(a,b,"present"));
   else if(sort === "miss_desc") list.sort((a,b)=>byNumDesc(a,b,"miss"));
-  else if(sort === "mission_desc") list.sort((a,b)=>byNumDesc(a,b,"mission"));
+  else if(sort === "late_desc") list.sort((a,b)=>byNumDesc(a,b,"late"));
 
   $("tbody").innerHTML = list.map(rowHtml).join("");
   renderCards(list);
   renderKpis(list);
 
-  $("hint").textContent = `បង្ហាញ ${list.length} នាក់ • សរុបក្នុង ១ ឆ្នាំ (Summary)`;
-  $("footerNote").textContent = `*ទិន្នន័យទាញពី Summary Sheet • Update: ${new Date().toLocaleString()}`;
+  const label = (currentMode === "YEAR")
+    ? "សរុប ១ ឆ្នាំ (Summary)"
+    : `ខែ ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
+
+  $("panelTitle").textContent = `បុគ្គលិក • ${label}`;
+  $("hint").textContent = `បង្ហាញ ${list.length} នាក់ • តម្រៀប: ${$("sort").selectedOptions[0].textContent}`;
+
+  $("sourceChip").innerHTML = `<span class="dot"></span>${currentMode === "YEAR" ? "Summary Sheet" : "Monthly Sheet"}`;
+  $("footerNote").textContent = `*Update: ${new Date().toLocaleString()}`;
 }
 
 /* ===========================
-   Modal (Summary detail)
+   Employee Detail Modal
 =========================== */
-function showModal(show){
-  const m = $("modal");
+function showModal(id, show){
+  const m = $(id);
   m.classList.toggle("show", !!show);
   m.setAttribute("aria-hidden", show ? "false" : "true");
 }
@@ -184,7 +203,9 @@ function openDetail(code){
   if(!emp) return;
 
   $("modalTitle").textContent = `${emp.code} • ${emp.lastName} ${emp.firstName}`;
-  $("modalSub").textContent = `Summary total (1 year)`;
+  $("modalSub").textContent = (currentMode === "YEAR")
+    ? "Summary total (1 year)"
+    : `Monthly total: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
 
   $("d_code").textContent = emp.code;
   $("d_name").textContent = `${emp.lastName} ${emp.firstName}`;
@@ -195,9 +216,9 @@ function openDetail(code){
   mini.innerHTML = "";
   const cards = [
     {k:"វត្តមាន", v: fmt(emp.present)},
-    {k:"ភ្លេចស្កេន", v: fmt(emp.miss)},
+    {k:"សម្រាក/អវត្តមាន", v: fmt(emp.miss)},
     {k:"ច្បាប់", v: fmt(emp.permission)},
-    {k:"បេសកម្ម", v: fmt(emp.mission)},
+    {k:"យឺត", v: fmt(emp.late)},
   ];
   for(const c of cards){
     const d = document.createElement("div");
@@ -206,7 +227,25 @@ function openDetail(code){
     mini.appendChild(d);
   }
 
-  showModal(true);
+  showModal("modal", true);
+}
+
+/* ===========================
+   Months Modal
+=========================== */
+function buildMonthsGrid(){
+  const wrap = $("monthsGrid");
+  wrap.innerHTML = "";
+
+  // only months that exist from meta
+  months.forEach(m => {
+    const b = document.createElement("button");
+    b.className = "monthBtn";
+    b.type = "button";
+    b.textContent = m.label;
+    b.dataset.month = m.key;
+    wrap.appendChild(b);
+  });
 }
 
 /* ===========================
@@ -215,14 +254,45 @@ function openDetail(code){
 async function loadAll(){
   setStatus("Loading...");
   try{
-    const data = await fetchEmployees();
+    const meta = await fetchMeta();
+    months = meta.months || [];
+    buildMonthsGrid();
+
+    // default: YEAR mode (Summary)
+    currentMode = "YEAR";
+    currentMonthKey = "ALL";
+
+    const data = await fetchEmployees("YEAR", "ALL");
     employees = data.employees || [];
+
+    // default sort: sheet order
+    $("sort").value = "sheet";
     applyFilterSort();
+
     setStatus("Ready");
   }catch(err){
     console.error(err);
     setStatus("Error");
     alert("មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ SCRIPT_URL និង Deployment (Web App)។");
+  }
+}
+
+async function loadMonth(monthKey){
+  setStatus("Loading month...");
+  try{
+    currentMode = "MONTH";
+    currentMonthKey = monthKey;
+
+    const data = await fetchEmployees("MONTH", monthKey);
+    employees = data.employees || [];
+    // keep sorting = sheet by default (so matches Summary order)
+    $("sort").value = "sheet";
+    applyFilterSort();
+    setStatus("Ready");
+  }catch(err){
+    console.error(err);
+    setStatus("Error");
+    alert("មិនអាចទាញទិន្នន័យខែបានទេ។ សូមពិនិត្យថា sheet ខែនោះមាននៅក្នុង Google Sheet។");
   }
 }
 
@@ -233,20 +303,38 @@ function bindEvents(){
   $("q").addEventListener("input", applyFilterSort);
   $("gender").addEventListener("change", applyFilterSort);
   $("sort").addEventListener("change", applyFilterSort);
+
   $("btnRefresh").addEventListener("click", loadAll);
 
   $("btnViewCards").addEventListener("click", ()=>setView("cards"));
   $("btnViewTable").addEventListener("click", ()=>setView("table"));
 
-  $("btnClose").addEventListener("click", ()=>showModal(false));
-  $("backdrop").addEventListener("click", ()=>showModal(false));
-  window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") showModal(false); });
+  // detail modal
+  $("btnClose").addEventListener("click", ()=>showModal("modal", false));
+  $("backdrop").addEventListener("click", ()=>showModal("modal", false));
+  window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") { showModal("modal", false); showModal("monthsModal", false); showModal("accountModal", false); } });
 
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-detail]");
-    if(!btn) return;
-    openDetail(btn.dataset.detail);
+    if(btn) openDetail(btn.dataset.detail);
+
+    const mbtn = e.target.closest("button.monthBtn");
+    if(mbtn){
+      const mk = mbtn.dataset.month;
+      showModal("monthsModal", false);
+      loadMonth(mk);
+    }
   });
+
+  // months modal
+  $("btnMonths").addEventListener("click", ()=>showModal("monthsModal", true));
+  $("btnMonthsClose").addEventListener("click", ()=>showModal("monthsModal", false));
+  $("monthsBackdrop").addEventListener("click", ()=>showModal("monthsModal", false));
+
+  // account modal
+  $("btnAccount").addEventListener("click", ()=>showModal("accountModal", true));
+  $("btnAccountClose").addEventListener("click", ()=>showModal("accountModal", false));
+  $("accountBackdrop").addEventListener("click", ()=>showModal("accountModal", false));
 
   // PWA Install
   window.addEventListener("beforeinstallprompt", (e) => {
