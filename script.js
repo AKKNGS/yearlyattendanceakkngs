@@ -364,3 +364,4 @@ if ("serviceWorker" in navigator) {
 bindEvents();
 setView("cards");
 loadAll();
+
