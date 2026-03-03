@@ -329,3 +329,4 @@ function bindEvents(){
 bindEvents();
 setView("cards");
 loadAll();
+
