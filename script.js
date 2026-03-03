@@ -1,15 +1,13 @@
 /* ===========================
    CONFIG
 =========================== */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwGifoIAxkfZt3cGroIa9u9a1fepzakyQKic5DyPOsRL8-h7u6f85CrkqIMY4m-W-rA/exec"; // e.g. https://script.google.com/macros/s/XXXX/exec
-const API_TOKEN  = ""; // optional: must match TOKEN in Code.gs. leave "" if not used
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwGifoIAxkfZt3cGroIa9u9a1fepzakyQKic5DyPOsRL8-h7u6f85CrkqIMY4m-W-rA/exec";
+const API_TOKEN  = ""; // optional, must match TOKEN in Code.gs
 
 /* ===========================
    State
 =========================== */
 let employees = [];
-let months = [];
-let selectedMonth = "";
 let deferredInstallPrompt = null;
 
 /* ===========================
@@ -18,20 +16,18 @@ let deferredInstallPrompt = null;
 const $ = (id) => document.getElementById(id);
 
 function setStatus(msg){ $("status").textContent = msg; }
+function fmt(n){ return Number(n || 0).toLocaleString("en-US"); }
+function safeText(s){ return (s ?? "").toString(); }
 
-function fmt(n){
-  const x = Number(n || 0);
-  return x.toLocaleString("en-US");
-}
-
-function safeText(s){
-  return (s ?? "").toString();
+function initials(lastName, firstName){
+  const a = (safeText(lastName)[0] || "").toUpperCase();
+  const b = (safeText(firstName)[0] || "").toUpperCase();
+  return (a + b) || "AA";
 }
 
 function qs(){
   return {
     q: $("q").value.trim().toLowerCase(),
-    month: $("month").value,
     gender: $("gender").value,
     sort: $("sort").value,
   };
@@ -47,54 +43,22 @@ function apiUrl(params){
 /* ===========================
    API Calls
 =========================== */
-async function fetchMeta(){
-  const res = await fetch(apiUrl({ action:"meta" }), { cache:"no-store" });
-  if(!res.ok) throw new Error("Meta fetch failed");
-  return res.json();
-}
-
-async function fetchEmployees(month){
-  const res = await fetch(apiUrl({ action:"employees", month }), { cache:"no-store" });
+async function fetchEmployees(){
+  const res = await fetch(apiUrl({ action:"employees" }), { cache:"no-store" });
   if(!res.ok) throw new Error("Employees fetch failed");
-  return res.json();
-}
-
-async function fetchDetail(empId){
-  const res = await fetch(apiUrl({ action:"detail", id: empId }), { cache:"no-store" });
-  if(!res.ok) throw new Error("Detail fetch failed");
   return res.json();
 }
 
 /* ===========================
    Rendering
 =========================== */
-function buildMonthOptions(){
-  const sel = $("month");
-  sel.innerHTML = "";
-
-  const optAll = document.createElement("option");
-  optAll.value = "ALL";
-  optAll.textContent = "សរុបទាំងឆ្នាំ";
-  sel.appendChild(optAll);
-
-  months.forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m.key;
-    opt.textContent = m.label;
-    sel.appendChild(opt);
-  });
-
-  // default
-  sel.value = selectedMonth || "ALL";
-}
-
 function computeTotals(list){
-  const t = { present:0, absent:0, permission:0, late:0, count:list.length };
+  const t = { present:0, miss:0, permission:0, mission:0, count:list.length };
   for(const r of list){
     t.present += Number(r.present || 0);
-    t.absent += Number(r.absent || 0);
+    t.miss += Number(r.miss || 0);
     t.permission += Number(r.permission || 0);
-    t.late += Number(r.late || 0);
+    t.mission += Number(r.mission || 0);
   }
   return t;
 }
@@ -106,9 +70,9 @@ function renderKpis(list){
 
   const cards = [
     { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួនក្នុងតារាង" },
-    { k:"វត្តមាន", v: fmt(t.present), s:"សរុប" },
-    { k:"អវត្តមាន", v: fmt(t.absent), s:"សរុប" },
-    { k:"យឺត", v: fmt(t.late), s:"សរុប" },
+    { k:"វត្តមាន", v: fmt(t.present), s:"សរុប ១ ឆ្នាំ" },
+    { k:"ភ្លេចស្កេន", v: fmt(t.miss), s:"សរុប ១ ឆ្នាំ" },
+    { k:"បេសកម្ម", v: fmt(t.mission), s:"សរុប ១ ឆ្នាំ" },
   ];
 
   for(const c of cards){
@@ -117,6 +81,36 @@ function renderKpis(list){
     div.innerHTML = `<div class="k">${c.k}</div><div class="v">${c.v}</div><div class="s">${c.s}</div>`;
     wrap.appendChild(div);
   }
+}
+
+function cardHtml(r){
+  return `
+    <div class="empCard">
+      <div class="empCardTop">
+        <div class="avatar">${initials(r.lastName, r.firstName)}</div>
+        <div style="min-width:0">
+          <div class="empName">${safeText(r.lastName)} ${safeText(r.firstName)}</div>
+          <div class="empMeta">${safeText(r.code)} • ${safeText(r.role)} • ${safeText(r.gender)}</div>
+        </div>
+      </div>
+
+      <div class="empNums">
+        <div class="num"><div class="k">វត្តមាន</div><div class="v">${fmt(r.present)}</div></div>
+        <div class="num"><div class="k">ភ្លេចស្កេន</div><div class="v">${fmt(r.miss)}</div></div>
+        <div class="num"><div class="k">ច្បាប់</div><div class="v">${fmt(r.permission)}</div></div>
+        <div class="num"><div class="k">បេសកម្ម</div><div class="v">${fmt(r.mission)}</div></div>
+      </div>
+
+      <div class="empCardActions">
+        <div class="tag">សរុបក្នុង ១ ឆ្នាំ (Summary)</div>
+        <button class="btn ghost" data-detail="${safeText(r.code)}">View</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderCards(list){
+  $("cards").innerHTML = list.map(cardHtml).join("");
 }
 
 function rowHtml(r){
@@ -128,19 +122,25 @@ function rowHtml(r){
       <td class="center">${safeText(r.gender)}</td>
       <td>${safeText(r.role)}</td>
       <td class="right">${fmt(r.present)}</td>
-      <td class="right">${fmt(r.absent)}</td>
+      <td class="right">${fmt(r.miss)}</td>
       <td class="right">${fmt(r.permission)}</td>
-      <td class="right">${fmt(r.late)}</td>
-      <td class="center">
-        <button class="btn ghost" data-detail="${safeText(r.code)}">View</button>
-      </td>
+      <td class="right">${fmt(r.mission)}</td>
+      <td class="center"><button class="btn ghost" data-detail="${safeText(r.code)}">View</button></td>
     </tr>
   `;
 }
 
-function applyFilterSort(){
-  const {q, month, gender, sort} = qs();
+function setView(view){
+  const showCards = view === "cards";
+  $("cards").style.display = showCards ? "grid" : "none";
+  $("tableWrap").style.display = showCards ? "none" : "block";
 
+  $("btnViewCards").classList.toggle("active", showCards);
+  $("btnViewTable").classList.toggle("active", !showCards);
+}
+
+function applyFilterSort(){
+  const {q, gender, sort} = qs();
   let list = employees.slice();
 
   if(gender){
@@ -148,77 +148,65 @@ function applyFilterSort(){
   }
   if(q){
     list = list.filter(x => {
-      const blob = [
-        x.code, x.lastName, x.firstName, x.gender, x.role
-      ].map(safeText).join(" ").toLowerCase();
+      const blob = [x.code, x.lastName, x.firstName, x.gender, x.role].map(safeText).join(" ").toLowerCase();
       return blob.includes(q);
     });
   }
 
-  // sort
   const byText = (a,b, key) => safeText(a[key]).localeCompare(safeText(b[key]));
   const byNumDesc = (a,b, key) => (Number(b[key]||0) - Number(a[key]||0));
 
   if(sort === "code") list.sort((a,b)=>byText(a,b,"code"));
   else if(sort === "name") list.sort((a,b)=> (safeText(a.lastName)+safeText(a.firstName)).localeCompare(safeText(b.lastName)+safeText(b.firstName)));
   else if(sort === "present_desc") list.sort((a,b)=>byNumDesc(a,b,"present"));
-  else if(sort === "absent_desc") list.sort((a,b)=>byNumDesc(a,b,"absent"));
-  else if(sort === "late_desc") list.sort((a,b)=>byNumDesc(a,b,"late"));
+  else if(sort === "miss_desc") list.sort((a,b)=>byNumDesc(a,b,"miss"));
+  else if(sort === "mission_desc") list.sort((a,b)=>byNumDesc(a,b,"mission"));
 
-  // render
   $("tbody").innerHTML = list.map(rowHtml).join("");
-  $("hint").textContent = `បង្ហាញ ${list.length} នាក់ • ខែ: ${month === "ALL" ? "សរុបទាំងឆ្នាំ" : (months.find(m=>m.key===month)?.label || month)}`;
-
+  renderCards(list);
   renderKpis(list);
+
+  $("hint").textContent = `បង្ហាញ ${list.length} នាក់ • សរុបក្នុង ១ ឆ្នាំ (Summary)`;
+  $("footerNote").textContent = `*ទិន្នន័យទាញពី Summary Sheet • Update: ${new Date().toLocaleString()}`;
 }
 
-async function openDetail(empId){
-  setStatus("Loading details...");
-  try{
-    const data = await fetchDetail(empId);
-    // data: { employee, rows:[{monthKey,label,present,absent,permission,late}], totals:{} }
-    $("modalTitle").textContent = `${data.employee.code} • ${data.employee.lastName} ${data.employee.firstName}`;
-    $("modalSub").textContent = `${safeText(data.employee.role)} • ${safeText(data.employee.gender)}`;
-
-    const mini = $("miniKpis");
-    mini.innerHTML = "";
-    const t = data.totals || {};
-    const cards = [
-      {k:"វត្តមាន", v: fmt(t.present)},
-      {k:"អវត្តមាន", v: fmt(t.absent)},
-      {k:"ច្បាប់", v: fmt(t.permission)},
-      {k:"យឺត", v: fmt(t.late)},
-    ];
-    for(const c of cards){
-      const d = document.createElement("div");
-      d.className = "miniKpi";
-      d.innerHTML = `<div class="k">${c.k}</div><div class="v">${c.v}</div>`;
-      mini.appendChild(d);
-    }
-
-    $("detailBody").innerHTML = (data.rows || []).map(r => `
-      <tr>
-        <td>${safeText(r.label)}</td>
-        <td class="right">${fmt(r.present)}</td>
-        <td class="right">${fmt(r.absent)}</td>
-        <td class="right">${fmt(r.permission)}</td>
-        <td class="right">${fmt(r.late)}</td>
-      </tr>
-    `).join("");
-
-    showModal(true);
-    setStatus("Ready");
-  }catch(err){
-    console.error(err);
-    setStatus("Failed to load detail");
-    alert("បរាជ័យក្នុងការទាញយក Detail។ សូមពិនិត្យ SCRIPT_URL/Token និង Deployment។");
-  }
-}
-
+/* ===========================
+   Modal (Summary detail)
+=========================== */
 function showModal(show){
   const m = $("modal");
   m.classList.toggle("show", !!show);
   m.setAttribute("aria-hidden", show ? "false" : "true");
+}
+
+function openDetail(code){
+  const emp = employees.find(e => safeText(e.code) === safeText(code));
+  if(!emp) return;
+
+  $("modalTitle").textContent = `${emp.code} • ${emp.lastName} ${emp.firstName}`;
+  $("modalSub").textContent = `Summary total (1 year)`;
+
+  $("d_code").textContent = emp.code;
+  $("d_name").textContent = `${emp.lastName} ${emp.firstName}`;
+  $("d_gender").textContent = emp.gender;
+  $("d_role").textContent = emp.role;
+
+  const mini = $("miniKpis");
+  mini.innerHTML = "";
+  const cards = [
+    {k:"វត្តមាន", v: fmt(emp.present)},
+    {k:"ភ្លេចស្កេន", v: fmt(emp.miss)},
+    {k:"ច្បាប់", v: fmt(emp.permission)},
+    {k:"បេសកម្ម", v: fmt(emp.mission)},
+  ];
+  for(const c of cards){
+    const d = document.createElement("div");
+    d.className = "miniKpi";
+    d.innerHTML = `<div class="k">${c.k}</div><div class="v">${c.v}</div>`;
+    mini.appendChild(d);
+  }
+
+  showModal(true);
 }
 
 /* ===========================
@@ -227,22 +215,14 @@ function showModal(show){
 async function loadAll(){
   setStatus("Loading...");
   try{
-    const meta = await fetchMeta();
-    months = meta.months || [];
-    selectedMonth = meta.defaultMonthKey || "ALL";
-
-    buildMonthOptions();
-
-    const month = $("month").value;
-    const empRes = await fetchEmployees(month);
-    employees = empRes.employees || [];
-
+    const data = await fetchEmployees();
+    employees = data.employees || [];
     applyFilterSort();
     setStatus("Ready");
   }catch(err){
     console.error(err);
     setStatus("Error");
-    alert("មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ Apps Script Web App URL និងការចែកចាយ (Deploy)។");
+    alert("មិនអាចទាញទិន្នន័យបានទេ។ សូមពិនិត្យ SCRIPT_URL និង Deployment (Web App)។");
   }
 }
 
@@ -253,33 +233,20 @@ function bindEvents(){
   $("q").addEventListener("input", applyFilterSort);
   $("gender").addEventListener("change", applyFilterSort);
   $("sort").addEventListener("change", applyFilterSort);
-
-  $("month").addEventListener("change", async () => {
-    setStatus("Loading month...");
-    try{
-      const month = $("month").value;
-      const empRes = await fetchEmployees(month);
-      employees = empRes.employees || [];
-      applyFilterSort();
-      setStatus("Ready");
-    }catch(err){
-      console.error(err);
-      setStatus("Error");
-    }
-  });
-
   $("btnRefresh").addEventListener("click", loadAll);
 
-  // table click for details
-  $("tbody").addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-detail]");
-    if(!btn) return;
-    openDetail(btn.dataset.detail);
-  });
+  $("btnViewCards").addEventListener("click", ()=>setView("cards"));
+  $("btnViewTable").addEventListener("click", ()=>setView("table"));
 
   $("btnClose").addEventListener("click", ()=>showModal(false));
   $("backdrop").addEventListener("click", ()=>showModal(false));
   window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") showModal(false); });
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-detail]");
+    if(!btn) return;
+    openDetail(btn.dataset.detail);
+  });
 
   // PWA Install
   window.addEventListener("beforeinstallprompt", (e) => {
@@ -307,4 +274,5 @@ if ("serviceWorker" in navigator) {
 }
 
 bindEvents();
+setView("cards");
 loadAll();
