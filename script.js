@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqN499pvOFxhVlFg6tqbrAkr8_YRp8wzxJb6126mLQhYSH_vHRi6dmOEusmMsa508x/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfo4gmihZl8t3WdJL5zGO0_tHAY4tEU5HOGlhhh3bqScfluGMm-7fhez63Q1YFkfSy/exec";
 const API_TOKEN  = ""; // optional
 
 let employees = [];
@@ -312,5 +312,6 @@ function bindEvents(){
 bindEvents();
 setView("cards");
 loadAll();
+
 
 
