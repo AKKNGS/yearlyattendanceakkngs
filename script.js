@@ -3,7 +3,7 @@ const API_TOKEN  = ""; // optional
 
 let employees = [];
 let months = [];
-let currentMode = "YEAR";
+let currentMode = "YEAR";    // YEAR | MONTH
 let currentMonthKey = "ALL";
 
 const $ = (id) => document.getElementById(id);
@@ -68,10 +68,14 @@ function renderKpis(list){
     { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួន" },
     { k:"Total Scan", v: fmt(t.present), s: label },
     { k:"Total ForgetScan", v: fmt(t.miss), s: label },
+    { k:"Total Permission", v: fmt(t.permission), s: label },
     { k:"Total Mission", v: fmt(t.mission), s: label },
   ];
 
-  for(const c of cards){
+  // show 4 KPIs only (keep clean) -> we show: count + scan + forget + mission
+  const show = [cards[0], cards[1], cards[2], cards[4]];
+
+  for(const c of show){
     const div = document.createElement("div");
     div.className = "kpi";
     div.innerHTML = `<div class="k">${c.k}</div><div class="v">${c.v}</div><div class="s">${c.s}</div>`;
@@ -268,46 +272,65 @@ function bindEvents(){
   $("btnViewCards").addEventListener("click", ()=>setView("cards"));
   $("btnViewTable").addEventListener("click", ()=>setView("table"));
 
-  // Modals
+  // Detail modal close
   $("btnClose").addEventListener("click", ()=>showModal("modal", false));
   $("backdrop").addEventListener("click", ()=>showModal("modal", false));
 
+  // Months modal open/close
   $("btnMonths").addEventListener("click", ()=>showModal("monthsModal", true));
   $("btnMonthsClose").addEventListener("click", ()=>showModal("monthsModal", false));
   $("monthsBackdrop").addEventListener("click", ()=>showModal("monthsModal", false));
+  $("btnBackToYear").addEventListener("click", async ()=>{
+    showModal("monthsModal", false);
+    await loadYear();
+  });
 
+  // Account modal open/close
   $("btnAccount").addEventListener("click", ()=>showModal("accountModal", true));
   $("btnAccountClose").addEventListener("click", ()=>showModal("accountModal", false));
   $("accountBackdrop").addEventListener("click", ()=>showModal("accountModal", false));
 
-  // ✅ Delegation (View + Month buttons)
-  document.addEventListener("click", (e) => {
-    const detailBtn = e.target.closest("[data-detail]");
-    if(detailBtn) openDetail(detailBtn.dataset.detail);
-
-    const monthBtn = e.target.closest(".monthBtn");
-    if(monthBtn){
-      const mk = monthBtn.dataset.month;
-      showModal("monthsModal", false);
-
-      loadMonth(mk).catch(err => {
-        console.error(err);
-        setStatus("Error");
-        alert(
-          "Error loading month: " + mk +
-          "\n\n" + (err?.message || err)
-        );
-      });
-    }
+  // ✅ Months click: direct delegation in monthsGrid (Fix 100%)
+  $("monthsGrid").addEventListener("click", (e)=>{
+    const btn = e.target.closest(".monthBtn");
+    if(!btn) return;
+    const mk = btn.dataset.month;
+    showModal("monthsModal", false);
+    loadMonth(mk).catch(err=>{
+      console.error(err);
+      setStatus("Error");
+      alert("Error loading month: " + mk + "\n\n" + (err?.message || err));
+    });
   });
 
-  // Esc key close
+  // Detail button click (cards + table)
+  document.addEventListener("click", (e)=>{
+    const detailBtn = e.target.closest("[data-detail]");
+    if(detailBtn) openDetail(detailBtn.dataset.detail);
+  });
+
+  // ESC close
   window.addEventListener("keydown", (e)=>{
     if(e.key === "Escape"){
       showModal("modal", false);
       showModal("monthsModal", false);
       showModal("accountModal", false);
     }
+  });
+
+  // PWA install
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    $("btnInstall").hidden = false;
+  });
+  $("btnInstall").addEventListener("click", async ()=>{
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    $("btnInstall").hidden = true;
   });
 
   // Service Worker
@@ -317,14 +340,7 @@ function bindEvents(){
     });
   }
 }
+
 bindEvents();
 setView("cards");
 loadAll();
-
-
-
-
-
-
-
-
