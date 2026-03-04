@@ -51,7 +51,7 @@
           <div class="field">
             <label>តម្រៀប</label>
             <select id="sort">
-              <option value="sheet" selected>តាមលំដាប់ក្នុង Sheet</option>
+              <option value="sheet">តាម Sheet</option>
               <option value="code">កូដ</option>
               <option value="name">ឈ្មោះ</option>
               <option value="present_desc">Total Scan (ច្រើន→តិច)</option>
@@ -60,12 +60,9 @@
             </select>
           </div>
 
-          <div class="field">
-            <label>View</label>
-            <div class="seg">
-              <button class="segBtn active" id="btnViewCards" type="button">Cards</button>
-              <button class="segBtn" id="btnViewTable" type="button">Table</button>
-            </div>
+          <div class="seg">
+            <button id="btnViewCards" class="segBtn active" type="button">Cards</button>
+            <button id="btnViewTable" class="segBtn" type="button">Table</button>
           </div>
         </div>
 
@@ -78,36 +75,32 @@
             <div class="panelTitle" id="panelTitle">បុគ្គលិក</div>
             <div class="panelHint" id="hint"></div>
           </div>
-
-          <div class="chip" id="sourceChip">
-            <span class="dot"></span>
-            Summary
-          </div>
+          <div class="chip" id="sourceChip"><span class="dot"></span>Summary</div>
         </div>
 
-        <div id="cards" class="cards"></div>
+        <div id="cards" class="cardsGrid"></div>
 
-        <div class="tableWrap" id="tableWrap">
+        <div id="tableWrap" class="tableWrap" style="display:none">
           <table class="table" id="tbl">
             <thead>
               <tr>
-                <th>Employee ID</th>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th class="center">Gender</th>
-                <th>Position</th>
+                <th>កូដ</th>
+                <th>នាមខ្លួន</th>
+                <th>នាមត្រកូល</th>
+                <th class="center">ភេទ</th>
+                <th>តួនាទី</th>
                 <th class="right">Total Scan</th>
-                <th class="right">Total ForgetScan</th>
-                <th class="right">Total Permission</th>
-                <th class="right">Total Mission</th>
-                <th class="center">Detail</th>
+                <th class="right">ForgetScan</th>
+                <th class="right">Permission</th>
+                <th class="right">Mission</th>
+                <th class="center">លម្អិត</th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
 
-        <div class="footerNote" id="footerNote">*កំពុងទាញទិន្នន័យ...</div>
+        <div class="footerNote" id="footerNote">*Loading...</div>
       </section>
     </main>
 
@@ -117,9 +110,9 @@
     </footer>
   </div>
 
-  <!-- Employee Detail Modal -->
+  <!-- Detail Modal -->
   <div class="modal" id="modal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modalHeader">
         <div>
           <div id="modalTitle" class="modalTitle">Details</div>
@@ -129,13 +122,14 @@
       </div>
 
       <div class="modalBody">
-        <div class="miniKpis" id="miniKpis"></div>
-        <div class="detailBox">
-          <div class="detailRow"><span>Employee ID</span><b id="d_code">-</b></div>
-          <div class="detailRow"><span>Name</span><b id="d_name">-</b></div>
-          <div class="detailRow"><span>Gender</span><b id="d_gender">-</b></div>
-          <div class="detailRow"><span>Position</span><b id="d_role">-</b></div>
+        <div class="detailGrid">
+          <div class="detailItem"><div class="dk">Code</div><div id="d_code" class="dv"></div></div>
+          <div class="detailItem"><div class="dk">Name</div><div id="d_name" class="dv"></div></div>
+          <div class="detailItem"><div class="dk">Gender</div><div id="d_gender" class="dv"></div></div>
+          <div class="detailItem"><div class="dk">Role</div><div id="d_role" class="dv"></div></div>
         </div>
+
+        <div class="miniKpis" id="miniKpis"></div>
       </div>
     </div>
     <div class="backdrop" id="backdrop"></div>
@@ -143,16 +137,19 @@
 
   <!-- Months Modal -->
   <div class="modal" id="monthsModal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true">
+    <div class="modalCard wide" role="dialog" aria-modal="true" aria-labelledby="monthsTitle">
       <div class="modalHeader">
         <div>
-          <div class="modalTitle">មើលទិន្នន័យតាមខែ</div>
-          <div class="modalSub">ជ្រើសខែ ដើម្បីបង្ហាញទិន្នន័យ</div>
+          <div id="monthsTitle" class="modalTitle">ជ្រើសរើសខែ</div>
+          <div class="modalSub">ចុចខែ ដើម្បីមើលទិន្នន័យតាមខែ</div>
         </div>
         <button class="btn ghost" id="btnMonthsClose">Close</button>
       </div>
       <div class="modalBody">
-        <div class="monthsGrid" id="monthsGrid"></div>
+        <div id="monthsGrid" class="monthsGrid"></div>
+        <div class="monthsHelp">
+          <button class="btn" id="btnBackToYear" type="button">Back to Summary (Year)</button>
+        </div>
       </div>
     </div>
     <div class="backdrop" id="monthsBackdrop"></div>
@@ -160,24 +157,20 @@
 
   <!-- Account Modal -->
   <div class="modal" id="accountModal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
       <div class="modalHeader">
         <div>
-          <div class="modalTitle">គណនី / Account</div>
+          <div id="accountTitle" class="modalTitle">Account</div>
           <div class="modalSub">ព័ត៌មានអ្នកបង្កើតកម្មវិធី</div>
         </div>
         <button class="btn ghost" id="btnAccountClose">Close</button>
       </div>
       <div class="modalBody">
-        <div class="accountCard">
-          <div class="accountLine"><span>ឈ្មោះអ្នកបង្កើត</span><b>ហម ម៉ាលីនដា</b></div>
-          <div class="accountLine"><span>លេខទូរសព្ទ</span><b><a class="link" href="tel:017751115">017 751 115</a></b></div>
-          <div class="accountLine"><span>Telegram</span><b><a class="link" target="_blank" rel="noopener" href="https://t.me/MalindaHorm">t.me/MalindaHorm</a></b></div>
-
-          <div class="accountActions">
-            <a class="btn" href="tel:017751115">Call</a>
-            <a class="btn ghost" target="_blank" rel="noopener" href="https://t.me/MalindaHorm">Open Telegram</a>
-          </div>
+        <div class="accountBox">
+          <div class="accRow"><div class="accK">ឈ្មោះ</div><div class="accV">ហម ម៉ាលីនដា</div></div>
+          <div class="accRow"><div class="accK">Phone</div><div class="accV"><a href="tel:017751115">017 751 115</a></div></div>
+          <div class="accRow"><div class="accK">Telegram</div><div class="accV"><a href="https://t.me/MalindaHorm" target="_blank" rel="noreferrer">t.me/MalindaHorm</a></div></div>
+          <div class="accRow"><div class="accK">App</div><div class="accV">Annual Attendance (View Only)</div></div>
         </div>
       </div>
     </div>
@@ -187,4 +180,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
