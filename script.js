@@ -286,12 +286,20 @@ function bindEvents(){
     if(detailBtn) openDetail(detailBtn.dataset.detail);
 
     const monthBtn = e.target.closest(".monthBtn");
-    if(monthBtn){
-      const mk = monthBtn.dataset.month;
-      showModal("monthsModal", false);
-      loadMonth(mk);
-    }
+if(monthBtn){
+  const mk = monthBtn.dataset.month;
+  showModal("monthsModal", false);
+
+  loadMonth(mk).catch(err => {
+    console.error(err);
+    setStatus("Error");
+    alert(
+      "Error loading month: " + mk +
+      "\n\n" + (err?.message || err) +
+      "\n\nចំណាំ: ពិនិត្យថា Sheet ឈ្មោះ '" + mk + "' មាន header 'Employee ID' នៅ 10 ជួរដេកដំបូង និង Deploy version ថ្មី។"
+    );
   });
+}
 
   window.addEventListener("keydown", (e)=>{
     if(e.key === "Escape"){
@@ -312,6 +320,7 @@ function bindEvents(){
 bindEvents();
 setView("cards");
 loadAll();
+
 
 
 
