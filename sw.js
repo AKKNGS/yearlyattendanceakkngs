@@ -1,4 +1,4 @@
-const CACHE_NAME = "attendance-pwa-v5";
+const CACHE_NAME = "attendance-pwa-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -37,3 +37,4 @@ self.addEventListener("fetch", (event) => {
     caches.match(req).then((cached) => cached || fetch(req))
   );
 });
+
