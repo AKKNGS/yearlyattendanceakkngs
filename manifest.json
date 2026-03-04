@@ -2,9 +2,10 @@
   "name": "Annual Attendance",
   "short_name": "Attendance",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#070c14",
-  "theme_color": "#1976d2",
+  "background_color": "#050b14",
+  "theme_color": "#0b5bd3",
   "icons": [
     {
       "src": "logo.png",
