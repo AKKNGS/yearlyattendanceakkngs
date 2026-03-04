@@ -1,10 +1,11 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfo4gmihZl8t3WdJL5zGO0_tHAY4tEU5HOGlhhh3bqScfluGMm-7fhez63Q1YFkfSy/exec";
-const API_TOKEN  = ""; // optional
+const API_TOKEN  = ""; // optional (if you add token check in Code.gs)
 
 let employees = [];
 let months = [];
-let currentMode = "YEAR";    // YEAR | MONTH
-let currentMonthKey = "ALL";
+let currentMode = "YEAR";     // YEAR or MONTH
+let currentMonthKey = "ALL";  // ALL or month sheet name
+let currentView = "cards";    // cards / table
 
 const $ = (id) => document.getElementById(id);
 
@@ -55,27 +56,27 @@ function computeTotals(list){
   return t;
 }
 
+function currentLabel(){
+  if(currentMode === "YEAR") return "Summary (Year)";
+  const m = months.find(x => x.key === currentMonthKey);
+  return `Month: ${m?.label || currentMonthKey}`;
+}
+
 function renderKpis(list){
   const t = computeTotals(list);
   const wrap = $("kpis");
   wrap.innerHTML = "";
 
-  const label = (currentMode === "YEAR")
-    ? "Summary (Year)"
-    : `Month: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
+  const label = currentLabel();
 
   const cards = [
     { k:"បុគ្គលិក", v: fmt(t.count), s:"ចំនួន" },
     { k:"Total Scan", v: fmt(t.present), s: label },
     { k:"Total ForgetScan", v: fmt(t.miss), s: label },
-    { k:"Total Permission", v: fmt(t.permission), s: label },
     { k:"Total Mission", v: fmt(t.mission), s: label },
   ];
 
-  // show 4 KPIs only (keep clean) -> we show: count + scan + forget + mission
-  const show = [cards[0], cards[1], cards[2], cards[4]];
-
-  for(const c of show){
+  for(const c of cards){
     const div = document.createElement("div");
     div.className = "kpi";
     div.innerHTML = `<div class="k">${c.k}</div><div class="v">${c.v}</div><div class="s">${c.s}</div>`;
@@ -93,15 +94,17 @@ function cardHtml(r){
           <div class="empMeta">${safeText(r.code)} • ${safeText(r.role)} • ${safeText(r.gender)}</div>
         </div>
       </div>
+
       <div class="empNums">
         <div class="num"><div class="k">Total Scan</div><div class="v">${fmt(r.present)}</div></div>
         <div class="num"><div class="k">ForgetScan</div><div class="v">${fmt(r.miss)}</div></div>
         <div class="num"><div class="k">Permission</div><div class="v">${fmt(r.permission)}</div></div>
         <div class="num"><div class="k">Mission</div><div class="v">${fmt(r.mission)}</div></div>
       </div>
+
       <div class="empCardActions">
-        <div class="tag">${currentMode === "YEAR" ? "Summary (Year)" : `Month: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`}</div>
-        <button class="btn ghost" data-detail="${safeText(r.code)}">View</button>
+        <div class="tag">${currentLabel()}</div>
+        <button class="btn ghost" data-detail="${safeText(r.code)}" type="button">View</button>
       </div>
     </div>
   `;
@@ -119,12 +122,13 @@ function rowHtml(r){
       <td class="right">${fmt(r.miss)}</td>
       <td class="right">${fmt(r.permission)}</td>
       <td class="right">${fmt(r.mission)}</td>
-      <td class="center"><button class="btn ghost" data-detail="${safeText(r.code)}">View</button></td>
+      <td class="center"><button class="btn ghost" data-detail="${safeText(r.code)}" type="button">View</button></td>
     </tr>
   `;
 }
 
 function setView(view){
+  currentView = view;
   const showCards = view === "cards";
   $("cards").style.display = showCards ? "grid" : "none";
   $("tableWrap").style.display = showCards ? "none" : "block";
@@ -138,14 +142,13 @@ function render(list){
 
   renderKpis(list);
 
-  const label = (currentMode === "YEAR")
-    ? "Summary (Year)"
-    : `Month: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
-
-  $("panelTitle").textContent = `បុគ្គលិក • ${label}`;
+  $("panelTitle").textContent = `បុគ្គលិក • ${currentLabel()}`;
   $("hint").textContent = `បង្ហាញ ${list.length} នាក់`;
   $("sourceChip").innerHTML = `<span class="dot"></span>${currentMode === "YEAR" ? "Summary" : "Monthly"}`;
   $("footerNote").textContent = `*Update: ${new Date().toLocaleString()}`;
+
+  // keep view mode
+  setView(currentView);
 }
 
 function applyFilterSort(){
@@ -186,7 +189,7 @@ function openDetail(code){
   if(!emp) return;
 
   $("modalTitle").textContent = `${emp.code} • ${emp.lastName} ${emp.firstName}`;
-  $("modalSub").textContent = (currentMode === "YEAR")
+  $("modalSub").textContent = currentMode === "YEAR"
     ? "Summary total (Year)"
     : `Monthly total: ${months.find(m=>m.key===currentMonthKey)?.label || currentMonthKey}`;
 
@@ -213,9 +216,20 @@ function openDetail(code){
   showModal("modal", true);
 }
 
+/* ---------- Months UI ---------- */
+
 function buildMonthsGrid(){
   const wrap = $("monthsGrid");
   wrap.innerHTML = "";
+
+  // include Summary shortcut
+  const allBtn = document.createElement("button");
+  allBtn.className = "monthBtn";
+  allBtn.type = "button";
+  allBtn.textContent = "Summary (Year)";
+  allBtn.dataset.month = "ALL";
+  wrap.appendChild(allBtn);
+
   months.forEach(m => {
     const b = document.createElement("button");
     b.className = "monthBtn";
@@ -226,13 +240,54 @@ function buildMonthsGrid(){
   });
 }
 
+function buildMonthSelect(){
+  const sel = $("monthSelect");
+  if(!sel) return;
+
+  sel.innerHTML = `<option value="ALL">Summary (Year)</option>` +
+    months.map(m => `<option value="${m.key}">${m.label}</option>`).join("");
+
+  sel.value = currentMode === "YEAR" ? "ALL" : currentMonthKey;
+}
+
+function buildTabsRow(){
+  const row = $("tabsRow");
+  row.innerHTML = "";
+
+  const mkTab = (key, label, smallText="") => {
+    const b = document.createElement("button");
+    b.className = "tabBtn";
+    b.type = "button";
+    b.dataset.month = key;
+    b.innerHTML = smallText ? `${label} <small>(${smallText})</small>` : label;
+    return b;
+  };
+
+  row.appendChild(mkTab("ALL", "Summary", "Year"));
+  months.forEach(m => row.appendChild(mkTab(m.key, m.label)));
+
+  syncActiveTabs();
+}
+
+function syncActiveTabs(){
+  const tabs = document.querySelectorAll(".tabBtn");
+  tabs.forEach(t => t.classList.toggle("active", (t.dataset.month === (currentMode==="YEAR" ? "ALL" : currentMonthKey))));
+}
+
+/* ---------- Load data ---------- */
+
 async function loadYear(){
   setStatus("Loading Summary...");
   currentMode = "YEAR";
   currentMonthKey = "ALL";
+
   const data = await apiGet({ action:"employees", month:"ALL" });
   employees = data.employees || [];
+
   $("sort").value = "sheet";
+  if($("monthSelect")) $("monthSelect").value = "ALL";
+  syncActiveTabs();
+
   applyFilterSort();
   setStatus("Ready");
 }
@@ -241,9 +296,14 @@ async function loadMonth(monthKey){
   setStatus("Loading " + monthKey + "...");
   currentMode = "MONTH";
   currentMonthKey = monthKey;
+
   const data = await apiGet({ action:"employees", month: monthKey });
   employees = data.employees || [];
+
   $("sort").value = "sheet";
+  if($("monthSelect")) $("monthSelect").value = monthKey;
+  syncActiveTabs();
+
   applyFilterSort();
   setStatus("Ready");
 }
@@ -253,7 +313,11 @@ async function loadAll(){
   try{
     const meta = await apiGet({ action:"meta" });
     months = meta.months || [];
+
     buildMonthsGrid();
+    buildMonthSelect();
+    buildTabsRow();
+
     await loadYear();
   }catch(err){
     console.error(err);
@@ -261,6 +325,8 @@ async function loadAll(){
     alert("Error: " + err.message + "\n\nពិនិត្យ Apps Script Deploy version + SCRIPT_URL");
   }
 }
+
+/* ---------- Events ---------- */
 
 function bindEvents(){
   $("q").addEventListener("input", applyFilterSort);
@@ -272,44 +338,56 @@ function bindEvents(){
   $("btnViewCards").addEventListener("click", ()=>setView("cards"));
   $("btnViewTable").addEventListener("click", ()=>setView("table"));
 
-  // Detail modal close
+  // dropdown month
+  $("monthSelect").addEventListener("change", async (e)=>{
+    const v = e.target.value;
+    try{
+      if(v === "ALL") await loadYear();
+      else await loadMonth(v);
+    }catch(err){
+      console.error(err);
+      setStatus("Error");
+      alert("Error loading month: " + v + "\n\n" + (err?.message || err));
+    }
+  });
+
+  // Modals
   $("btnClose").addEventListener("click", ()=>showModal("modal", false));
   $("backdrop").addEventListener("click", ()=>showModal("modal", false));
 
-  // Months modal open/close
   $("btnMonths").addEventListener("click", ()=>showModal("monthsModal", true));
   $("btnMonthsClose").addEventListener("click", ()=>showModal("monthsModal", false));
   $("monthsBackdrop").addEventListener("click", ()=>showModal("monthsModal", false));
-  $("btnBackToYear").addEventListener("click", async ()=>{
-    showModal("monthsModal", false);
-    await loadYear();
-  });
 
-  // Account modal open/close
   $("btnAccount").addEventListener("click", ()=>showModal("accountModal", true));
   $("btnAccountClose").addEventListener("click", ()=>showModal("accountModal", false));
   $("accountBackdrop").addEventListener("click", ()=>showModal("accountModal", false));
 
-  // ✅ Months click: direct delegation in monthsGrid (Fix 100%)
-  $("monthsGrid").addEventListener("click", (e)=>{
-    const btn = e.target.closest(".monthBtn");
-    if(!btn) return;
-    const mk = btn.dataset.month;
-    showModal("monthsModal", false);
-    loadMonth(mk).catch(err=>{
-      console.error(err);
-      setStatus("Error");
-      alert("Error loading month: " + mk + "\n\n" + (err?.message || err));
-    });
-  });
-
-  // Detail button click (cards + table)
-  document.addEventListener("click", (e)=>{
+  // Delegation: View + Month buttons (tabs + modal)
+  document.addEventListener("click", (e) => {
     const detailBtn = e.target.closest("[data-detail]");
     if(detailBtn) openDetail(detailBtn.dataset.detail);
+
+    const monthBtn = e.target.closest("[data-month]");
+    if(monthBtn){
+      const mk = monthBtn.dataset.month;
+
+      // close months modal if opened
+      showModal("monthsModal", false);
+
+      (mk === "ALL" ? loadYear() : loadMonth(mk)).catch(err=>{
+        console.error(err);
+        setStatus("Error");
+        alert(
+          "Error loading month: " + mk +
+          "\n\n" + (err?.message || err) +
+          "\n\nចំណាំ: Sheet ខែ ត្រូវមាន header ដូច Summary (Employee ID, Total Scan, Total Mission...)"
+        );
+      });
+    }
   });
 
-  // ESC close
+  // Esc key close
   window.addEventListener("keydown", (e)=>{
     if(e.key === "Escape"){
       showModal("modal", false);
@@ -318,7 +396,7 @@ function bindEvents(){
     }
   });
 
-  // PWA install
+  // PWA install prompt
   let deferredPrompt = null;
   window.addEventListener("beforeinstallprompt", (e)=>{
     e.preventDefault();
@@ -328,7 +406,7 @@ function bindEvents(){
   $("btnInstall").addEventListener("click", async ()=>{
     if(!deferredPrompt) return;
     deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    await deferredPrompt.userChoice.catch(()=>{});
     deferredPrompt = null;
     $("btnInstall").hidden = true;
   });
