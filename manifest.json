@@ -1,13 +1,15 @@
 {
-  "name": "វត្តមានបុគ្គលិក (Annual Attendance)",
+  "name": "Annual Attendance",
   "short_name": "Attendance",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#0b1220",
+  "background_color": "#070c14",
   "theme_color": "#1976d2",
-  "description": "View-only annual attendance dashboard from Summary sheet (PWA).",
   "icons": [
-    { "src": "logo.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
