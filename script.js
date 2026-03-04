@@ -280,27 +280,28 @@ function bindEvents(){
   $("btnAccountClose").addEventListener("click", ()=>showModal("accountModal", false));
   $("accountBackdrop").addEventListener("click", ()=>showModal("accountModal", false));
 
-  // IMPORTANT: delegation (works even if button has inner elements)
+  // ✅ Delegation (View + Month buttons)
   document.addEventListener("click", (e) => {
     const detailBtn = e.target.closest("[data-detail]");
     if(detailBtn) openDetail(detailBtn.dataset.detail);
 
     const monthBtn = e.target.closest(".monthBtn");
-if(monthBtn){
-  const mk = monthBtn.dataset.month;
-  showModal("monthsModal", false);
+    if(monthBtn){
+      const mk = monthBtn.dataset.month;
+      showModal("monthsModal", false);
 
-  loadMonth(mk).catch(err => {
-    console.error(err);
-    setStatus("Error");
-    alert(
-      "Error loading month: " + mk +
-      "\n\n" + (err?.message || err) +
-      "\n\nចំណាំ: ពិនិត្យថា Sheet ឈ្មោះ '" + mk + "' មាន header 'Employee ID' នៅ 10 ជួរដេកដំបូង និង Deploy version ថ្មី។"
-    );
+      loadMonth(mk).catch(err => {
+        console.error(err);
+        setStatus("Error");
+        alert(
+          "Error loading month: " + mk +
+          "\n\n" + (err?.message || err)
+        );
+      });
+    }
   });
-}
 
+  // Esc key close
   window.addEventListener("keydown", (e)=>{
     if(e.key === "Escape"){
       showModal("modal", false);
@@ -316,10 +317,10 @@ if(monthBtn){
     });
   }
 }
-
 bindEvents();
 setView("cards");
 loadAll();
+
 
 
 
