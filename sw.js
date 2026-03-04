@@ -1,4 +1,4 @@
-const CACHE = "attendance-summary-pwa-v1";
+const CACHE = "attendance-summary-pwa-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -33,3 +33,4 @@ self.addEventListener("fetch", (event) => {
   // Static: cache-first
   event.respondWith(caches.match(event.request).then((c)=>c || fetch(event.request)));
 });
+
