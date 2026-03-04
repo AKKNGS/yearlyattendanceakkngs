@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#1976d2" />
+  <meta name="theme-color" content="#0b5bd3" />
   <title>វត្តមានបុគ្គលិក (Annual Attendance)</title>
 
   <link rel="manifest" href="manifest.json">
@@ -33,10 +33,22 @@
 
     <main class="content">
       <section class="panel">
+        <!-- Month Tabs (Auto) -->
+        <div class="tabsRow" id="tabsRow" aria-label="Month tabs">
+          <!-- injected by JS -->
+        </div>
+
         <div class="controls">
           <div class="field">
             <label>ស្វែងរក</label>
             <input id="q" type="search" placeholder="កូដ/ឈ្មោះ/ភេទ/តួនាទី..." autocomplete="off"/>
+          </div>
+
+          <div class="field">
+            <label>ខែ</label>
+            <select id="monthSelect">
+              <option value="ALL">Summary (Year)</option>
+            </select>
           </div>
 
           <div class="field">
@@ -51,22 +63,27 @@
           <div class="field">
             <label>តម្រៀប</label>
             <select id="sort">
-              <option value="sheet">តាម Sheet</option>
+              <option value="sheet">លំដាប់តាម Sheet</option>
               <option value="code">កូដ</option>
               <option value="name">ឈ្មោះ</option>
-              <option value="present_desc">Total Scan (ច្រើន→តិច)</option>
-              <option value="miss_desc">ForgetScan (ច្រើន→តិច)</option>
-              <option value="mission_desc">Mission (ច្រើន→តិច)</option>
+              <option value="present_desc">វត្តមាន (ច្រើន→តិច)</option>
+              <option value="miss_desc">ភ្លេចស្កេន (ច្រើន→តិច)</option>
+              <option value="mission_desc">បេសកម្ម (ច្រើន→តិច)</option>
             </select>
           </div>
 
-          <div class="seg">
-            <button id="btnViewCards" class="segBtn active" type="button">Cards</button>
-            <button id="btnViewTable" class="segBtn" type="button">Table</button>
+          <div class="field viewToggle">
+            <label>View</label>
+            <div class="seg">
+              <button id="btnViewCards" class="segBtn active" type="button">Cards</button>
+              <button id="btnViewTable" class="segBtn" type="button">Table</button>
+            </div>
           </div>
         </div>
 
-        <div class="kpis" id="kpis"></div>
+        <div class="kpis" id="kpis">
+          <!-- KPI cards injected by JS -->
+        </div>
       </section>
 
       <section class="panel">
@@ -75,18 +92,23 @@
             <div class="panelTitle" id="panelTitle">បុគ្គលិក</div>
             <div class="panelHint" id="hint"></div>
           </div>
-          <div class="chip" id="sourceChip"><span class="dot"></span>Summary</div>
+
+          <div class="chip" id="sourceChip">
+            <span class="dot"></span>Summary
+          </div>
         </div>
 
+        <!-- Cards -->
         <div id="cards" class="cardsGrid"></div>
 
-        <div id="tableWrap" class="tableWrap" style="display:none">
+        <!-- Table -->
+        <div class="tableWrap" id="tableWrap">
           <table class="table" id="tbl">
             <thead>
               <tr>
                 <th>កូដ</th>
-                <th>នាមខ្លួន</th>
                 <th>នាមត្រកូល</th>
+                <th>នាមខ្លួន</th>
                 <th class="center">ភេទ</th>
                 <th>តួនាទី</th>
                 <th class="right">Total Scan</th>
@@ -100,7 +122,9 @@
           </table>
         </div>
 
-        <div class="footerNote" id="footerNote">*Loading...</div>
+        <div class="footerNote" id="footerNote">
+          *កំពុងទាញទិន្នន័យ.....
+        </div>
       </section>
     </main>
 
@@ -118,15 +142,15 @@
           <div id="modalTitle" class="modalTitle">Details</div>
           <div id="modalSub" class="modalSub"></div>
         </div>
-        <button class="btn ghost" id="btnClose">Close</button>
+        <button class="btn ghost" id="btnClose" type="button">Close</button>
       </div>
 
       <div class="modalBody">
         <div class="detailGrid">
-          <div class="detailItem"><div class="dk">Code</div><div id="d_code" class="dv"></div></div>
-          <div class="detailItem"><div class="dk">Name</div><div id="d_name" class="dv"></div></div>
-          <div class="detailItem"><div class="dk">Gender</div><div id="d_gender" class="dv"></div></div>
-          <div class="detailItem"><div class="dk">Role</div><div id="d_role" class="dv"></div></div>
+          <div class="detailItem"><div class="k">Code</div><div class="v" id="d_code">-</div></div>
+          <div class="detailItem"><div class="k">Name</div><div class="v" id="d_name">-</div></div>
+          <div class="detailItem"><div class="k">Gender</div><div class="v" id="d_gender">-</div></div>
+          <div class="detailItem"><div class="k">Role</div><div class="v" id="d_role">-</div></div>
         </div>
 
         <div class="miniKpis" id="miniKpis"></div>
@@ -137,19 +161,16 @@
 
   <!-- Months Modal -->
   <div class="modal" id="monthsModal" aria-hidden="true">
-    <div class="modalCard wide" role="dialog" aria-modal="true" aria-labelledby="monthsTitle">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="monthsTitle">
       <div class="modalHeader">
         <div>
           <div id="monthsTitle" class="modalTitle">ជ្រើសរើសខែ</div>
-          <div class="modalSub">ចុចខែ ដើម្បីមើលទិន្នន័យតាមខែ</div>
+          <div class="modalSub">ចុចខែ ដើម្បីមើលទិន្នន័យ</div>
         </div>
-        <button class="btn ghost" id="btnMonthsClose">Close</button>
+        <button class="btn ghost" id="btnMonthsClose" type="button">Close</button>
       </div>
       <div class="modalBody">
-        <div id="monthsGrid" class="monthsGrid"></div>
-        <div class="monthsHelp">
-          <button class="btn" id="btnBackToYear" type="button">Back to Summary (Year)</button>
-        </div>
+        <div class="monthsGrid" id="monthsGrid"></div>
       </div>
     </div>
     <div class="backdrop" id="monthsBackdrop"></div>
@@ -157,20 +178,33 @@
 
   <!-- Account Modal -->
   <div class="modal" id="accountModal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="accTitle">
       <div class="modalHeader">
         <div>
-          <div id="accountTitle" class="modalTitle">Account</div>
+          <div id="accTitle" class="modalTitle">Account</div>
           <div class="modalSub">ព័ត៌មានអ្នកបង្កើតកម្មវិធី</div>
         </div>
-        <button class="btn ghost" id="btnAccountClose">Close</button>
+        <button class="btn ghost" id="btnAccountClose" type="button">Close</button>
       </div>
+
       <div class="modalBody">
-        <div class="accountBox">
-          <div class="accRow"><div class="accK">ឈ្មោះ</div><div class="accV">ហម ម៉ាលីនដា</div></div>
-          <div class="accRow"><div class="accK">Phone</div><div class="accV"><a href="tel:017751115">017 751 115</a></div></div>
-          <div class="accRow"><div class="accK">Telegram</div><div class="accV"><a href="https://t.me/MalindaHorm" target="_blank" rel="noreferrer">t.me/MalindaHorm</a></div></div>
-          <div class="accRow"><div class="accK">App</div><div class="accV">Annual Attendance (View Only)</div></div>
+        <div class="accountCard">
+          <div class="accountRow">
+            <div class="k">ឈ្មោះអ្នកបង្កើត</div>
+            <div class="v">ហម ម៉ាលីនដា</div>
+          </div>
+          <div class="accountRow">
+            <div class="k">លេខទូរស័ព្ទ</div>
+            <div class="v"><a href="tel:017751115">017 751 115</a></div>
+          </div>
+          <div class="accountRow">
+            <div class="k">Telegram</div>
+            <div class="v"><a href="https://t.me/MalindaHorm" target="_blank" rel="noreferrer">t.me/MalindaHorm</a></div>
+          </div>
+
+          <div class="tip">
+            💡 Tip: ប្រសិនបើទិន្នន័យមិនអាប់ដេត សូមចុច Refresh ឬ Clear cache (Service Worker)។
+          </div>
         </div>
       </div>
     </div>
