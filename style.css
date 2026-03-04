@@ -1,182 +1,462 @@
-<!doctype html>
-<html lang="km">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#1976d2" />
-  <title>វត្តមានបុគ្គលិក (Annual Attendance)</title>
+:root{
+  --bg0:#050b14;
+  --bg1:#071225;
+  --panel: rgba(14, 28, 48, .75);
+  --glass: rgba(255,255,255,.06);
+  --stroke: rgba(255,255,255,.10);
+  --stroke2: rgba(255,255,255,.14);
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.68);
+  --muted2: rgba(255,255,255,.50);
+  --blue:#0b5bd3;
+  --blue2:#0c7bff;
+  --shadow: 0 18px 50px rgba(0,0,0,.55);
+  --radius: 22px;
+  --radius2: 16px;
+}
 
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
-  <link rel="stylesheet" href="style.css" />
-</head>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans Khmer", "Khmer OS", sans-serif;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(11,91,211,.35), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(12,123,255,.25), transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  color:var(--text);
+}
 
-<body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <img class="logo" src="logo.png" alt="logo" />
-        <div class="brandText">
-          <div class="title">បញ្ជីវត្តមានបុគ្គលិក</div>
-          <div class="subtitle">Annual Attendance • View Only</div>
-        </div>
-      </div>
+a{color:#b9d6ff; text-decoration:none}
+a:hover{text-decoration:underline}
 
-      <div class="actions">
-        <button id="btnMonths" class="btn ghost">Months</button>
-        <button id="btnAccount" class="btn ghost">Account</button>
-        <button id="btnInstall" class="btn ghost" hidden>Install</button>
-        <button id="btnRefresh" class="btn">Refresh</button>
-      </div>
-    </header>
+.app{
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+}
 
-    <main class="content">
-      <section class="panel">
-        <div class="controls">
-          <div class="field">
-            <label>ស្វែងរក</label>
-            <input id="q" type="search" placeholder="កូដ/ឈ្មោះ/ភេទ/តួនាទី..." autocomplete="off"/>
-          </div>
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  padding:18px 18px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  background: linear-gradient(180deg, rgba(5,11,20,.92), rgba(5,11,20,.65));
+  border-bottom:1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+}
 
-          <div class="field">
-            <label>ភេទ</label>
-            <select id="gender">
-              <option value="">ទាំងអស់</option>
-              <option value="M">M</option>
-              <option value="F">F</option>
-            </select>
-          </div>
+.brand{display:flex; align-items:center; gap:12px; min-width:0}
+.logo{
+  width:44px; height:44px;
+  border-radius:12px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+}
+.brandText{min-width:0}
+.title{font-weight:800; letter-spacing:.2px; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.subtitle{color:var(--muted); font-size:13px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
-          <div class="field">
-            <label>តម្រៀប</label>
-            <select id="sort">
-              <option value="sheet">តាម Sheet</option>
-              <option value="code">កូដ</option>
-              <option value="name">ឈ្មោះ</option>
-              <option value="present_desc">Total Scan (ច្រើន→តិច)</option>
-              <option value="miss_desc">ForgetScan (ច្រើន→តិច)</option>
-              <option value="mission_desc">Mission (ច្រើន→តិច)</option>
-            </select>
-          </div>
+.actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
 
-          <div class="seg">
-            <button id="btnViewCards" class="segBtn active" type="button">Cards</button>
-            <button id="btnViewTable" class="segBtn" type="button">Table</button>
-          </div>
-        </div>
+.btn{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.12);
+  background: linear-gradient(180deg, rgba(11,91,211,.95), rgba(9,70,160,.95));
+  color: white;
+  padding:10px 14px;
+  border-radius:16px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow: 0 12px 26px rgba(0,0,0,.45);
+}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(1px)}
 
-        <div class="kpis" id="kpis"></div>
-      </section>
+.btn.ghost{
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  box-shadow: none;
+}
 
-      <section class="panel">
-        <div class="panelHeader">
-          <div>
-            <div class="panelTitle" id="panelTitle">បុគ្គលិក</div>
-            <div class="panelHint" id="hint"></div>
-          </div>
-          <div class="chip" id="sourceChip"><span class="dot"></span>Summary</div>
-        </div>
+.content{
+  width:min(1200px, 100%);
+  margin:0 auto;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
 
-        <div id="cards" class="cardsGrid"></div>
+.panel{
+  border-radius: var(--radius);
+  background: var(--panel);
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow: var(--shadow);
+  padding:16px;
+  overflow:hidden;
+}
 
-        <div id="tableWrap" class="tableWrap" style="display:none">
-          <table class="table" id="tbl">
-            <thead>
-              <tr>
-                <th>កូដ</th>
-                <th>នាមខ្លួន</th>
-                <th>នាមត្រកូល</th>
-                <th class="center">ភេទ</th>
-                <th>តួនាទី</th>
-                <th class="right">Total Scan</th>
-                <th class="right">ForgetScan</th>
-                <th class="right">Permission</th>
-                <th class="right">Mission</th>
-                <th class="center">លម្អិត</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
+.tabsRow{
+  display:flex;
+  gap:10px;
+  overflow:auto;
+  padding-bottom:10px;
+  margin-bottom:10px;
+}
+.tabsRow::-webkit-scrollbar{height:8px}
+.tabsRow::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12); border-radius:999px}
+.tabBtn{
+  flex:0 0 auto;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  cursor:pointer;
+  font-weight:800;
+  letter-spacing:.2px;
+}
+.tabBtn.active{
+  background: linear-gradient(180deg, rgba(12,123,255,.95), rgba(11,91,211,.85));
+  border-color: rgba(255,255,255,.18);
+}
+.tabBtn small{opacity:.75; font-weight:700}
 
-        <div class="footerNote" id="footerNote">*Loading...</div>
-      </section>
-    </main>
+.controls{
+  display:grid;
+  grid-template-columns: 1.3fr .9fr .7fr .9fr 1fr;
+  gap:12px;
+  align-items:end;
+}
 
-    <footer class="bottombar">
-      <div class="status" id="status">Ready</div>
-      <div class="small">Offline ready (PWA) • Cached static files</div>
-    </footer>
-  </div>
+@media (max-width: 980px){
+  .controls{grid-template-columns: 1fr 1fr; }
+  .actions{gap:8px}
+}
+@media (max-width: 480px){
+  .controls{grid-template-columns: 1fr;}
+}
 
-  <!-- Detail Modal -->
-  <div class="modal" id="modal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modalHeader">
-        <div>
-          <div id="modalTitle" class="modalTitle">Details</div>
-          <div id="modalSub" class="modalSub"></div>
-        </div>
-        <button class="btn ghost" id="btnClose">Close</button>
-      </div>
+.field label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin:0 0 8px 2px;
+}
+.field input, .field select{
+  width:100%;
+  padding:12px 12px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.12);
+  outline:none;
+  color:var(--text);
+  background: rgba(255,255,255,.05);
+}
+.field input::placeholder{color:rgba(255,255,255,.45)}
 
-      <div class="modalBody">
-        <div class="detailGrid">
-          <div class="detailItem"><div class="dk">Code</div><div id="d_code" class="dv"></div></div>
-          <div class="detailItem"><div class="dk">Name</div><div id="d_name" class="dv"></div></div>
-          <div class="detailItem"><div class="dk">Gender</div><div id="d_gender" class="dv"></div></div>
-          <div class="detailItem"><div class="dk">Role</div><div id="d_role" class="dv"></div></div>
-        </div>
+.viewToggle .seg{
+  display:flex;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.12);
+  overflow:hidden;
+  background: rgba(255,255,255,.05);
+}
+.segBtn{
+  flex:1;
+  padding:12px 10px;
+  border:0;
+  cursor:pointer;
+  background:transparent;
+  color:var(--muted);
+  font-weight:900;
+}
+.segBtn.active{
+  color:var(--text);
+  background: rgba(255,255,255,.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+}
 
-        <div class="miniKpis" id="miniKpis"></div>
-      </div>
-    </div>
-    <div class="backdrop" id="backdrop"></div>
-  </div>
+.kpis{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:12px;
+}
+@media (max-width: 980px){ .kpis{grid-template-columns: repeat(2, 1fr);} }
+@media (max-width: 480px){ .kpis{grid-template-columns: 1fr;} }
 
-  <!-- Months Modal -->
-  <div class="modal" id="monthsModal" aria-hidden="true">
-    <div class="modalCard wide" role="dialog" aria-modal="true" aria-labelledby="monthsTitle">
-      <div class="modalHeader">
-        <div>
-          <div id="monthsTitle" class="modalTitle">ជ្រើសរើសខែ</div>
-          <div class="modalSub">ចុចខែ ដើម្បីមើលទិន្នន័យតាមខែ</div>
-        </div>
-        <button class="btn ghost" id="btnMonthsClose">Close</button>
-      </div>
-      <div class="modalBody">
-        <div id="monthsGrid" class="monthsGrid"></div>
-        <div class="monthsHelp">
-          <button class="btn" id="btnBackToYear" type="button">Back to Summary (Year)</button>
-        </div>
-      </div>
-    </div>
-    <div class="backdrop" id="monthsBackdrop"></div>
-  </div>
+.kpi{
+  border-radius: var(--radius2);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  padding:14px;
+}
+.kpi .k{color:var(--muted); font-size:13px; font-weight:800}
+.kpi .v{font-size:28px; font-weight:900; margin-top:6px}
+.kpi .s{color:var(--muted2); font-size:12px; margin-top:4px}
 
-  <!-- Account Modal -->
-  <div class="modal" id="accountModal" aria-hidden="true">
-    <div class="modalCard" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
-      <div class="modalHeader">
-        <div>
-          <div id="accountTitle" class="modalTitle">Account</div>
-          <div class="modalSub">ព័ត៌មានអ្នកបង្កើតកម្មវិធី</div>
-        </div>
-        <button class="btn ghost" id="btnAccountClose">Close</button>
-      </div>
-      <div class="modalBody">
-        <div class="accountBox">
-          <div class="accRow"><div class="accK">ឈ្មោះ</div><div class="accV">ហម ម៉ាលីនដា</div></div>
-          <div class="accRow"><div class="accK">Phone</div><div class="accV"><a href="tel:017751115">017 751 115</a></div></div>
-          <div class="accRow"><div class="accK">Telegram</div><div class="accV"><a href="https://t.me/MalindaHorm" target="_blank" rel="noreferrer">t.me/MalindaHorm</a></div></div>
-          <div class="accRow"><div class="accK">App</div><div class="accV">Annual Attendance (View Only)</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="backdrop" id="accountBackdrop"></div>
-  </div>
+.panelHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.panelTitle{font-size:18px; font-weight:900}
+.panelHint{color:var(--muted); margin-top:4px}
 
-  <script src="script.js"></script>
-</body>
-</html>
+.chip{
+  display:flex; gap:8px; align-items:center;
+  padding:10px 12px;
+  border-radius:999px;
+  background: rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  font-weight:800;
+}
+.dot{
+  width:10px; height:10px; border-radius:999px;
+  background: rgba(12,123,255,.9);
+  box-shadow: 0 0 0 4px rgba(12,123,255,.18);
+}
+
+.cardsGrid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:14px;
+}
+@media (max-width: 980px){ .cardsGrid{grid-template-columns: repeat(2, 1fr);} }
+@media (max-width: 560px){ .cardsGrid{grid-template-columns: 1fr;} }
+
+.empCard{
+  border-radius: var(--radius);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height: 210px;
+}
+.empCardTop{
+  display:flex; gap:12px; align-items:center;
+  padding:14px 14px 10px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.avatar{
+  width:46px; height:46px; border-radius:16px;
+  display:grid; place-items:center;
+  font-weight:900;
+  background: rgba(12,123,255,.16);
+  border:1px solid rgba(255,255,255,.12);
+}
+.empName{
+  font-size:16px;
+  font-weight:950;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.empMeta{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.empNums{
+  padding:12px 14px;
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+.num{
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.12);
+  padding:10px;
+}
+.num .k{font-size:12px; color:var(--muted); font-weight:800}
+.num .v{font-size:18px; font-weight:950; margin-top:6px}
+
+.empCardActions{
+  margin-top:auto;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.tag{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:800;
+}
+
+.tableWrap{
+  margin-top:6px;
+  overflow:auto;
+  border-radius: var(--radius);
+  border:1px solid rgba(255,255,255,.10);
+}
+.table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width: 900px;
+}
+.table thead th{
+  position:sticky;
+  top:0;
+  background: rgba(5,11,20,.85);
+  backdrop-filter: blur(8px);
+  z-index:1;
+  text-align:left;
+  font-size:12px;
+  color:var(--muted);
+  padding:12px 12px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.table td{
+  padding:12px 12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.table tbody tr:hover{background: rgba(255,255,255,.04)}
+.center{text-align:center}
+.right{text-align:right}
+
+.pill{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  font-weight:900;
+}
+
+.footerNote{
+  margin-top:12px;
+  color:var(--muted2);
+  font-size:12px;
+}
+
+.bottombar{
+  margin-top:auto;
+  padding:14px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  border-top:1px solid rgba(255,255,255,.08);
+  background: rgba(5,11,20,.55);
+  backdrop-filter: blur(10px);
+}
+.status{font-weight:900}
+.small{color:var(--muted); font-size:12px}
+
+/* Modal */
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  z-index:30;
+}
+.modal.show{display:block}
+.backdrop{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(5px);
+}
+.modalCard{
+  position:relative;
+  z-index:1;
+  width:min(920px, calc(100% - 24px));
+  margin: 60px auto;
+  border-radius: var(--radius);
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(10,20,35,.88);
+  box-shadow: 0 30px 70px rgba(0,0,0,.70);
+  overflow:hidden;
+}
+.modalHeader{
+  padding:16px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+}
+.modalTitle{font-size:18px; font-weight:950}
+.modalSub{color:var(--muted); margin-top:4px}
+.modalBody{padding:16px}
+
+.detailGrid{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+@media (max-width: 780px){ .detailGrid{grid-template-columns: 1fr 1fr;} }
+.detailItem{
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  padding:12px;
+}
+.detailItem .k{font-size:12px; color:var(--muted); font-weight:800}
+.detailItem .v{font-weight:950; margin-top:6px}
+
+.miniKpis{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:10px;
+}
+@media (max-width: 780px){ .miniKpis{grid-template-columns: 1fr 1fr;} }
+.miniKpi{
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.12);
+  padding:12px;
+}
+.miniKpi .k{font-size:12px; color:var(--muted); font-weight:800}
+.miniKpi .v{font-size:20px; font-weight:950; margin-top:6px}
+
+.monthsGrid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:10px;
+}
+@media (max-width: 680px){ .monthsGrid{grid-template-columns: 1fr 1fr;} }
+.monthBtn{
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  padding:12px;
+  font-weight:950;
+  cursor:pointer;
+}
+.monthBtn:hover{background: rgba(255,255,255,.09)}
+
+.accountCard{
+  border-radius: var(--radius);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  padding:14px;
+}
+.accountRow{
+  display:flex; justify-content:space-between; gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.accountRow:last-child{border-bottom:0}
+.accountRow .k{color:var(--muted); font-weight:900}
+.accountRow .v{font-weight:950}
+.tip{
+  margin-top:14px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
