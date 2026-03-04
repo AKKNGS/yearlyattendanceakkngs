@@ -1,36 +1,32 @@
-const CACHE = "attendance-summary-pwa-v2";
+const CACHE = "attendance-pwa-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
   "./manifest.json",
-  "./logo.png",
+  "./logo.png"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(()=>self.skipWaiting())
+    caches.open(CACHE).then((cache) => cache.addAll(ASSETS))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => (k!==CACHE ? caches.delete(k) : null))))
-      .then(()=>self.clients.claim())
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => (k !== CACHE) ? caches.delete(k) : null))
+    )
   );
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-
-  // Apps Script API: network-first
-  if (url.hostname.includes("script.google.com")) {
-    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
-    return;
-  }
-
-  // Static: cache-first
-  event.respondWith(caches.match(event.request).then((c)=>c || fetch(event.request)));
+  const req = event.request;
+  event.respondWith(
+    caches.match(req).then(cached => cached || fetch(req))
+  );
 });
-
