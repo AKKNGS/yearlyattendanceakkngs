@@ -460,3 +460,35 @@ a:hover{text-decoration:underline}
   font-size:12px;
   line-height:1.5;
 }
+
+/* ===== Mobile: Fix card numbers being cut off ===== */
+@media (max-width: 520px){
+  /* 4 columns -> 2 columns so it fits on phone */
+  .empNums{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* allow inner flex/grid to shrink instead of overflow */
+  .empCardTop > div{ min-width:0; }
+  .num{ min-width:0; }
+
+  /* action row wraps nicely */
+  .empCardActions{
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .tag{
+    max-width: 70%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* very small phones: stack into 1 column */
+@media (max-width: 360px){
+  .empNums{
+    grid-template-columns: 1fr;
+  }
+}
+
